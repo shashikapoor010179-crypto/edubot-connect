@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>EduTECH Connect — School AI Assistant</title>
+<title>EduBot Connect — School AI Assistant</title>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -32,7 +32,7 @@ body{font-family:'Outfit',sans-serif;min-height:100vh}
         EduBot <span style="background:linear-gradient(90deg,#f0a500,#ff6b6b);-webkit-background-clip:text;-webkit-text-fill-color:transparent">Connect</span>
       </h1>
       <p style="color:rgba(255,255,255,0.6);font-size:16px;max-width:460px;margin:0 auto;line-height:1.75">
-        Your school's AI assistant — fees, teachers, admissions, doubt solving — everything in one place, 24/7.
+        Your school's AI assistant — fees, teachers, admissions, bus routes — everything in one place, 24/7.
       </p>
     </div>
 
@@ -44,12 +44,25 @@ body{font-family:'Outfit',sans-serif;min-height:100vh}
       <div onclick="openChat()" style="background:rgba(255,255,255,0.07);border:1.5px solid rgba(255,255,255,0.1);border-radius:20px;padding:26px 22px;cursor:pointer;transition:all 0.22s ease;backdrop-filter:blur(10px)"
         onmouseover="this.style.background='rgba(255,255,255,0.13)';this.style.transform='translateY(-5px)';this.style.borderColor='#f0a500'"
         onmouseout="this.style.background='rgba(255,255,255,0.07)';this.style.transform='none';this.style.borderColor='rgba(255,255,255,0.1)'">
-        <div style="width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#1a6b3a,#f0a500);display:flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:14px;box-shadow:0 4px 14px rgba(26,107,58,0.5)">🏫</div>
+        <div style="width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#1a6b3a,#f0a500);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;margin-bottom:14px;box-shadow:0 4px 14px rgba(26,107,58,0.5)">GCS</div>
         <div style="color:#fff;font-weight:700;font-size:16px;margin-bottom:4px">Gurukul Convent School</div>
         <div style="color:rgba(255,255,255,0.45);font-size:12px;margin-bottom:16px">📍 Bansi, Siddharthnagar (UP)</div>
         <div style="display:flex;align-items:center;gap:7px;color:#f0a500;font-size:13px;font-weight:600">
           <div style="width:6px;height:6px;border-radius:50%;background:#4ade80"></div>
           Sinoy — Ask now →
+        </div>
+      </div>
+
+      <!-- Siddharth Public School Card -->
+      <div onclick="openChat2()" style="background:rgba(255,255,255,0.07);border:1.5px solid rgba(255,255,255,0.1);border-radius:20px;padding:26px 22px;cursor:pointer;transition:all 0.22s ease;backdrop-filter:blur(10px)"
+        onmouseover="this.style.background='rgba(255,255,255,0.13)';this.style.transform='translateY(-5px)';this.style.borderColor='#7c3aed'"
+        onmouseout="this.style.background='rgba(255,255,255,0.07)';this.style.transform='none';this.style.borderColor='rgba(255,255,255,0.1)'">
+        <div style="width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#1e40af,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#fff;margin-bottom:14px;box-shadow:0 4px 14px rgba(30,64,175,0.5)">SPS</div>
+        <div style="color:#fff;font-weight:700;font-size:16px;margin-bottom:4px">Siddharth Public School</div>
+        <div style="color:rgba(255,255,255,0.45);font-size:12px;margin-bottom:16px">📍 Karunda Masina, Siddharthnagar (UP)</div>
+        <div style="display:flex;align-items:center;gap:7px;color:#7c3aed;font-size:13px;font-weight:600">
+          <div style="width:6px;height:6px;border-radius:50%;background:#4ade80"></div>
+          Vidya — Ask now →
         </div>
       </div>
 
@@ -66,7 +79,7 @@ body{font-family:'Outfit',sans-serif;min-height:100vh}
       <div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:7px 14px;color:rgba(255,255,255,0.7);font-size:12px">🗣️ Hindi & English</div>
       <div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:7px 14px;color:rgba(255,255,255,0.7);font-size:12px">📱 Mobile Friendly</div>
       <div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:7px 14px;color:rgba(255,255,255,0.7);font-size:12px">🕐 24/7 Available</div>
-      <div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:7px 14px;color:rgba(255,255,255,0.7);font-size:12px">🤖 Claude AI Powered</div>
+      <div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:7px 14px;color:rgba(255,255,255,0.7);font-size:12px">🤖 AI Powered</div>
     </div>
 
     <!-- Contact -->
@@ -82,19 +95,19 @@ body{font-family:'Outfit',sans-serif;min-height:100vh}
       </div>
     </div>
 
-    <div style="text-align:center;color:rgba(255,255,255,0.25);font-size:12px">Built with ❤️ by Shashi Kapoor 👑 · EduBot Connect · Powered by 🧠 </div>
+    <div style="text-align:center;color:rgba(255,255,255,0.25);font-size:12px">Built with ❤️ by Shashi Kapoor · EduBot Connect </div>
   </div>
 </div>
 
 <!-- CHAT PAGE -->
 <div id="chat" style="display:none;flex-direction:column;height:100vh;background:#f4f6f9">
   <!-- Header -->
-  <div style="background:linear-gradient(135deg,#1a6b3a,#0d4a28);color:#fff;padding:14px 18px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 16px rgba(0,0,0,0.2)">
+  <div id="chatHeader" style="background:linear-gradient(135deg,#1a6b3a,#0d4a28);color:#fff;padding:14px 18px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 16px rgba(0,0,0,0.2)">
     <button onclick="goBack()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;border-radius:8px;padding:7px 13px;cursor:pointer;font-size:13px;font-family:'Outfit',sans-serif;font-weight:600">← Back</button>
-    <div style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#f0a500,rgba(255,255,255,0.2));display:flex;align-items:center;justify-content:center;font-size:22px">🏫</div>
+    <div id="chatLogo" style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#f0a500,rgba(255,255,255,0.2));display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff">GCS</div>
     <div>
-      <div style="font-weight:700;font-size:16px">Sinoy</div>
-      <div style="font-size:11px;opacity:0.8">Gurukul Convent School</div>
+      <div id="chatBotName" style="font-weight:700;font-size:16px">Sinoy</div>
+      <div id="chatSchoolName" style="font-size:11px;opacity:0.8">Gurukul Convent School</div>
     </div>
     <div style="margin-left:auto;display:flex;align-items:center;gap:5px">
       <div style="width:8px;height:8px;border-radius:50%;background:#4ade80;box-shadow:0 0 6px #4ade80"></div>
@@ -156,9 +169,6 @@ FEE STRUCTURE (Monthly):
 - Class 8th: ₹1,900 | Class 9th: ₹2,000 | Class 10th: ₹2,200
 - Class 11th: ₹2,400 | Class 12th: ₹2,500
 
-FOUNDER OF AI CHATBOT:
-- Shashi kapoor class 12th student currently studying in gurukul convent school has made this for school
-
 SCHOOL BUS ROUTES: Pathra, Beloha, Chetiya, Rudhauli
 
 If you don't know something, say: "Please contact the school office directly — timing 8 AM to 2 PM."
@@ -167,6 +177,22 @@ Always use "Ma'am" and "Sir" for teachers. Be warm and friendly!`;
 let chatHistory = [];
 
 function openChat() {
+  currentPrompt = SYSTEM_PROMPT;
+  document.getElementById('chatSchoolName').textContent = 'Gurukul Convent School';
+  document.getElementById('chatBotName').textContent = 'Sinoy';
+  document.getElementById('chatLogo').textContent = 'GCS';
+  document.getElementById('chatLogo').style.fontSize = '18px';
+  document.getElementById('chatLogo').style.fontWeight = '800';
+  document.getElementById('chatHeader').style.background = 'linear-gradient(135deg,#1a6b3a,#0d4a28)';
+  document.getElementById('sendBtn').style.background = 'linear-gradient(135deg,#1a6b3a,#0d4a28)';
+  chatHistory = [];
+  const msgs = document.getElementById('messages');
+  msgs.innerHTML = `<div class="msg" style="display:flex;align-items:flex-end;gap:8px">
+    <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#1a6b3a,#f0a500);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff;flex-shrink:0">GCS</div>
+    <div style="max-width:75%;padding:11px 15px;border-radius:4px 18px 18px 18px;background:#fff;color:#1a1a2e;box-shadow:0 2px 8px rgba(0,0,0,0.08);font-size:14px;line-height:1.65">
+      Hello! 👋 I'm <strong>Sinoy</strong> — AI assistant of Gurukul Convent School.<br/>Ask me anything — fees, teachers, bus routes, admissions!<br/><span style="opacity:0.6;font-size:12px">(Hindi / English / Hinglish — any language works!)</span>
+    </div>
+  </div>`;
   document.getElementById('landing').style.display = 'none';
   document.getElementById('chat').style.display = 'flex';
 }
@@ -247,7 +273,7 @@ async function sendMsg() {
       body: JSON.stringify({
         model: 'llama-3.1-8b-instant',
         max_tokens: 800,
-        messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...chatHistory]
+        messages: [{ role: 'system', content: currentPrompt }, ...chatHistory]
       })
     });
     const data = await res.json();
@@ -263,6 +289,60 @@ async function sendMsg() {
   btn.disabled = false;
   btn.style.background = 'linear-gradient(135deg,#1a6b3a,#0d4a28)';
 }
+
+const SYSTEM_PROMPT2 = `You are Vidya, the friendly AI assistant for Siddharth Public School. Help students, parents, and visitors with school information. Be helpful, friendly, and precise. Even if the user makes spelling mistakes, understand what they mean and answer correctly.
+
+IMPORTANT — LANGUAGE RULE:
+- If the user writes in Hindi → reply in Hindi
+- If the user writes in English → reply in English
+- If the user writes in Hinglish → reply in Hinglish
+
+SCHOOL INFORMATION:
+School Name: Siddharth Public School
+Address: Karunda Masina, Siddharthnagar (UP)
+Board: CBSE
+Classes: Nursery to Class 12th
+School Timing: 8:00 AM to 2:30 PM
+
+STAFF & MANAGEMENT:
+- Principal: To be updated
+- Vice Principal: To be updated
+
+FEE STRUCTURE (Monthly - Trial Data):
+- Nursery: ₹600 | LKG: ₹800 | UKG: ₹900
+- Class 1st: ₹1,100 | Class 2nd: ₹1,300 | Class 3rd: ₹1,400
+- Class 4th: ₹1,600 | Class 5th: ₹1,700 | Class 6th: ₹1,800
+- Class 7th: ₹1,900 | Class 8th: ₹2,000 | Class 9th: ₹2,200
+- Class 10th: ₹2,400 | Class 11th: ₹2,600 | Class 12th: ₹2,800
+
+SCHOOL BUS ROUTES: Available for nearby areas
+
+If you don't know something, say: "Please contact the school office directly for this information."
+Always be warm and friendly!`;
+
+let currentPrompt = SYSTEM_PROMPT;
+
+function openChat2() {
+  currentPrompt = SYSTEM_PROMPT2;
+  document.getElementById('chatSchoolName').textContent = 'Siddharth Public School';
+  document.getElementById('chatBotName').textContent = 'Vidya';
+  document.getElementById('chatLogo').textContent = 'SPS';
+  document.getElementById('chatLogo').style.fontSize = '18px';
+  document.getElementById('chatLogo').style.fontWeight = '800';
+  document.getElementById('chatHeader').style.background = 'linear-gradient(135deg,#1e40af,#7c3aed)';
+  document.getElementById('sendBtn').style.background = 'linear-gradient(135deg,#1e40af,#7c3aed)';
+  chatHistory = [];
+  const msgs = document.getElementById('messages');
+  msgs.innerHTML = `<div class="msg" style="display:flex;align-items:flex-end;gap:8px">
+    <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#1e40af,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;flex-shrink:0">SPS</div>
+    <div style="max-width:75%;padding:11px 15px;border-radius:4px 18px 18px 18px;background:#fff;color:#1a1a2e;box-shadow:0 2px 8px rgba(0,0,0,0.08);font-size:14px;line-height:1.65">
+      Hello! 👋 I'm <strong>Vidya</strong> — AI assistant of Siddharth Public School.<br/>Ask me anything — fees, teachers, bus routes, admissions!<br/><span style="opacity:0.6;font-size:12px">(Hindi / English / Hinglish — any language works!)</span>
+    </div>
+  </div>`;
+  document.getElementById('landing').style.display = 'none';
+  document.getElementById('chat').style.display = 'flex';
+}
 </script>
 </body>
 </html>
+
