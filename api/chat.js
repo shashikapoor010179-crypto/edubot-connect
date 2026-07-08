@@ -1,51 +1,76 @@
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
   const GROQ_API_KEY = process.env.GROQ_API_KEY;
-  const SHEET_URL = 'https://script.google.com/macros/s/AKfycbzkjMmVFS3PsiggU_GJ5q67QIItnkwFRQl-P1lA4bBjP2DnqeV6TmN_fFDS-JjiSKKl/exec';
+  const SHEET_URL =
+    "https://script.google.com/macros/s/AKfycbzkjMmVFS3PsiggU_GJ5q67QIItnkwFRQl-P1lA4bBjP2DnqeV6TmN_fFDS-JjiSKKl/exec";
 
   try {
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${GROQ_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: 'llama-3.1-8b-instant',
-        max_tokens: 800,
-        messages: req.body.messages
-      })
-    });
+    const response = await fetch(
+      "https://api.groq.com/openai/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${GROQ_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "llama-3.1-8b-instant",
+          max_tokens: 800,
+          messages: req.body.messages,
+        }),
+      }
+    );
 
     const data = await response.json();
-    const reply = data.choices?.[0]?.message?.content || '';
+    const reply = data.choices?.[0]?.message?.content || "";
 
-    // Find the last user message (the actual question just asked)
-    const userMessages = req.body.messages.filter(m => m.role === 'user');
-    const lastQuestion = userMessages.length ? userMessages[userMessages.length - 1].content : '';
+    // Last user question
+    const userMessages = req.body.messages.filter(
+      (m) => m.role === "user"
+    );
+    const lastQuestion = userMessages.length
+      ? userMessages[userMessages.length - 1].content
+      : "";
 
-    // Detect which school based on system prompt content
-    const systemMsg = req.body.messages.find(m => m.role === 'system');
-    let school = 'Unknown';
-    if (systemMsg?.content?.includes('Gurukul Convent School')) school = 'Gurukul Convent School';
-    if (systemMsg?.content?.includes('Siddharth Public School')) school = 'Siddharth Public School';
+    // School
+    const systemMsg = req.body.messages.find(
+      (m) => m.role === "system"
+    );
 
-    // Fire-and-forget log to Google Sheet (don't block the response if this fails)
+    let school = "Unknown";
+
+    if (systemMsg?.content?.includes("Gurukul Convent School")) {
+      school = "Gurukul Convent School";
+    } else if (systemMsg?.content?.includes("Siddharth Public School")) {
+      school = "Siddharth Public School";
+    }
+
+    // Student details from frontend
+    const studentName = req.body.name || "Guest";
+    const studentClass = req.body.class || "";
+
+    // Save to Google Sheet
     fetch(SHEET_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
         school: school,
         question: lastQuestion,
-        answer: reply
-      })
-    }).catch(() => {}); // ignore logging errors silently
+        name: studentName,
+        class: studentClass,
+        answer: reply,
+      }),
+    }).catch(console.error);
 
     return res.status(200).json(data);
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({
+      error: err.message,
+    });
   }
 }
