@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Edutech — School AI Assistant</title>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-PLSK1RB5KY"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-PLSK1RB5KY');
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Fraunces:ital,wght@0,600;1,600;1,700&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:'Outfit',sans-serif;min-height:100vh}
+@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
+@keyframes scrollBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}
+@keyframes revealUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes winPop{0%{transform:scale(1)}40%{transform:scale(1.3)}70%{transform:scale(0.9)}100%{transform:scale(1.15)}}
+@keyframes celebrate{0%{opacity:0;transform:scale(0.5)}60%{transform:scale(1.1)}100%{opacity:1;transform:scale(1)}}
+@keyframes slideIn{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes bellRing{0%,84%,100%{transform:rotate(0)}86%{transform:rotate(-14deg)}88%{transform:rotate(11deg)}90%{transform:rotate(-8deg)}92%{transform:rotate(6deg)}94%{transform:rotate(-4deg)}96%{transform:rotate(0)}}
+@keyframes dotPing{0%{box-shadow:0 0 0 0 rgba(255,107,107,0.65)}70%{box-shadow:0 0 0 7px rgba(255,107,107,0)}100%{box-shadow:0 0 0 0 rgba(255,107,107,0)}}
+@keyframes cornerPop{from{opacity:0;transform:translateY(-8px) scale(0.9)}to{opacity:1;transform:translateY(0) scale(1)}}
+.reveal{opacity:0}
+.reveal.in-view{animation:revealUp 0.6s ease forwards}
+.dot{width:7px;height:7px;border-radius:50%;background:#4ade80;animation:bounce 1.2s infinite}
+.dot:nth-child(2){animation-delay:.2s}
+.dot:nth-child(3){animation-delay:.4s}
+.msg{animation:fadeIn 0.3s ease}
+
+/* Hero spacing: small gap on desktop, enough clearance under corner buttons on mobile only */
+.hero-wrap{padding:56px 18px 0}
+@media (max-width:560px){.hero-wrap{padding-top:20px}}
+
+/* Login page */
+#login-page{display:none;position:fixed;inset:0;background:radial-gradient(circle at 50% 0%,#312e81 0%,transparent 45%),linear-gradient(160deg,#020617 0%,#0f172a 35%,#1e1b4b 70%,#020617 100%);z-index:200;align-items:center;justify-content:center;overflow-y:auto;padding:24px}
+#login-page.open{display:flex}
+.login-box{background:rgba(255,255,255,0.05);border:1.5px solid rgba(255,255,255,0.12);border-radius:24px;padding:32px 28px;width:100%;max-width:360px;animation:slideIn 0.4s ease}
+.login-input{width:100%;padding:12px 16px;border-radius:12px;border:1.5px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.07);color:#fff;font-family:'Outfit',sans-serif;font-size:15px;outline:none;transition:border 0.2s;margin-bottom:12px}
+.login-input:focus{border-color:#f59e0b}
+.login-input option{background:#1e1b4b;color:#fff}
+.login-select{appearance:none;-webkit-appearance:none;cursor:pointer}
+
+/* Profile dropdown */
+#profile-dropdown{display:none;position:fixed;top:64px;right:16px;background:rgba(15,23,42,0.95);border:1.5px solid rgba(255,255,255,0.15);border-radius:16px;padding:16px;min-width:200px;z-index:300;backdrop-filter:blur(12px);animation:slideIn 0.2s ease}
+#profile-dropdown.open{display:block}
+
+/* Games */
+.game-card{background:rgba(255,255,255,0.07);border:1.5px solid rgba(255,255,255,0.12);border-radius:18px;padding:20px 16px;cursor:pointer;text-align:center;color:#fff;transition:all 0.2s;font-family:'Outfit',sans-serif}
+.game-card:hover{background:rgba(255,255,255,0.14);transform:translateY(-3px)}
+.game-card .icon{font-size:34px;margin-bottom:8px}
+.game-card .label{font-size:14px;font-weight:700}
+.game-card .desc{font-size:11px;color:rgba(255,255,255,0.5);margin-top:3px}
+
+/* Tic Tac Toe */
+#ttt-board{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:240px;margin:10px auto}
+.ttt-cell{height:72px;border-radius:12px;background:rgba(255,255,255,0.1);border:2px solid rgba(255,255,255,0.2);font-size:28px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;transition:all 0.15s}
+.ttt-cell:hover{background:rgba(255,255,255,0.18)}
+.ttt-cell.x{color:#ff6b6b}
+.ttt-cell.o{color:#4ade80}
+.ttt-cell.winner{animation:winPop 0.5s ease forwards;border-color:#f0a500;background:rgba(240,165,0,0.25)!important}
+.win-banner{animation:celebrate 0.4s ease forwards;font-size:26px;text-align:center;margin:6px 0}
+.mode-btn{padding:7px 16px;border-radius:10px;border:1.5px solid rgba(255,255,255,0.25);background:rgba(255,255,255,0.08);color:#fff;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s}
+.mode-btn.active{background:rgba(240,165,0,0.25);border-color:#f0a500;color:#f0a500}
+
+/* Chess */
+#chess-board{display:grid;grid-template-columns:repeat(8,1fr);gap:0;max-width:312px;margin:10px auto;border:3px solid rgba(255,255,255,0.3);border-radius:8px;overflow:hidden}
+.chess-cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer;position:relative;transition:all 0.1s;user-select:none}
+.chess-cell.light{background:#e8d9b5}
+.chess-cell.dark{background:#8b6b4a}
+.chess-cell.selected{box-shadow:inset 0 0 0 3px #f0a500}
+.chess-cell.move-dot::after{content:'';position:absolute;width:22%;height:22%;border-radius:50%;background:rgba(74,222,128,0.7)}
+.chess-cell.capture-hint{box-shadow:inset 0 0 0 3px rgba(255,107,107,0.8)}
+.chess-cell.in-check{box-shadow:inset 0 0 0 3px #ff6b6b}
+
+/* Quiz */
+.quiz-opt{width:100%;padding:11px 16px;border-radius:12px;border:1.5px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);color:#fff;font-family:'Outfit',sans-serif;font-size:14px;font-weight:500;cursor:pointer;text-align:left;transition:all 0.15s;margin-bottom:8px}
+.quiz-opt:hover{background:rgba(255,255,255,0.15)}
+.quiz-opt.correct{background:rgba(74,222,128,0.25);border-color:#4ade80;color:#4ade80}
+.quiz-opt.wrong{background:rgba(255,107,107,0.2);border-color:#ff6b6b;color:#ff6b6b}
+.quiz-subj-btn{padding:8px 14px;border-radius:10px;border:1.5px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.07);color:#fff;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s}
+.quiz-subj-btn.active{background:rgba(240,165,0,0.25);border-color:#f0a500;color:#f0a500}
+.quiz-class-btn{padding:6px 12px;border-radius:8px;border:1.5px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.7);font-family:'Outfit',sans-serif;font-size:12px;cursor:pointer;transition:all 0.15s}
+.quiz-class-btn.active{background:rgba(124,58,237,0.25);border-color:#7c3aed;color:#c4b5fd}
+
+/* Suggestion chips */
+.chip-btn{flex-shrink:0;white-space:nowrap;background:rgba(15,118,110,0.08);border:1.5px solid rgba(15,118,110,0.2);color:#0f766e;font-family:'Outfit',sans-serif;font-size:12.5px;font-weight:600;padding:8px 14px;border-radius:20px;cursor:pointer;transition:all 0.15s}
+.chip-btn:hover{background:rgba(15,118,110,0.16)}
+
+/* Modal */
+#game-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:150;align-items:flex-start;justify-content:center;backdrop-filter:blur(4px);overflow-y:auto;padding:16px 0}
+#game-modal.open{display:flex}
+#game-box{background:linear-gradient(160deg,#1a1b4b,#4c1d95);border-radius:24px;padding:20px 18px;width:92%;max-width:370px;color:#fff;margin:auto}
+#game-title{font-size:17px;font-weight:800;margin-bottom:4px;text-align:center}
+#game-status{font-size:13px;text-align:center;color:rgba(255,255,255,0.7);margin-bottom:8px;min-height:20px}
+.game-close{float:right;background:rgba(255,255,255,0.15);border:none;color:#fff;border-radius:8px;padding:5px 12px;cursor:pointer;font-family:'Outfit',sans-serif;font-size:13px;margin-bottom:10px}
+
+/* School card + notices corner button */
+.school-card{position:relative}
+.notices-corner-btn{position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;background:rgba(245,158,11,0.16);border:1.5px solid rgba(245,158,11,0.4);color:#fbbf24;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;z-index:2;animation:bellRing 5s ease-in-out infinite;transform-origin:50% 0}
+.notices-corner-btn:hover{background:rgba(245,158,11,0.32);transform:scale(1.12)}
+.notices-corner-btn .dot{position:absolute;top:-2px;right:-2px;width:8px;height:8px;border-radius:50%;background:#ff6b6b;border:1.5px solid #0f172a;display:none;animation:dotPing 1.8s infinite}
+
+/* Floating corner control stack (profile / games / quizzes) */
+#corner-stack{position:fixed;top:16px;right:16px;z-index:60;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+.corner-icon-btn{width:42px;height:42px;border-radius:50%;background:rgba(15,23,42,0.65);border:1.5px solid rgba(251,191,36,0.35);color:#fcd34d;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);transition:all 0.2s;animation:cornerPop 0.35s ease backwards}
+.corner-icon-btn:hover{background:rgba(255,255,255,0.16);transform:translateY(-2px) scale(1.05)}
+.corner-icon-btn.games{color:#c4b5fd;border-color:rgba(124,58,237,0.4);animation-delay:0.05s}
+.corner-icon-btn.quizzes{color:#67e8f9;border-color:rgba(6,182,212,0.4);animation-delay:0.1s}
+#corner-welcome{background:rgba(15,23,42,0.65);border:1.5px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.8);font-size:11.5px;font-weight:600;padding:5px 12px;border-radius:20px;backdrop-filter:blur(10px);white-space:nowrap}
+
+/* Notices modal */
+#notices-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:180;align-items:flex-start;justify-content:center;backdrop-filter:blur(4px);overflow-y:auto;padding:16px 0}
+#notices-modal.open{display:flex}
+#notices-box{background:linear-gradient(160deg,#0f172a,#312e81);border-radius:24px;padding:22px 20px;width:92%;max-width:400px;margin:auto;color:#fff;max-height:85vh;overflow-y:auto}
+.notice-card{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-left:4px solid #f0a500;border-radius:12px;padding:14px 16px;margin-bottom:12px}
+.notice-card.urgent{border-left-color:#ff6b6b}
+.notice-date{font-size:11px;color:rgba(255,255,255,0.45);font-weight:600;letter-spacing:0.5px;margin-bottom:4px}
+.notice-title{font-size:14.5px;font-weight:700;margin-bottom:4px}
+.notice-desc{font-size:13px;color:rgba(255,255,255,0.75);line-height:1.6}
+</style>
+</head>
+<body>
+
+<!-- LOGIN PAGE -->
+<div id="login-page">
+  <div class="login-box">
+    <div style="text-align:center;margin-bottom:24px">
+      <div style="font-family:'Fraunces',serif;font-style:italic;font-size:36px;background:linear-gradient(90deg,#818cf8,#38bdf8,#34d399);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-weight:600">Edutech</div>
+      <div style="color:rgba(255,255,255,0.5);font-size:13px;margin-top:4px">Your School AI Platform</div>
+    </div>
+    <div style="color:rgba(255,255,255,0.4);font-size:11px;font-weight:600;letter-spacing:1px;margin-bottom:16px">QUICK LOGIN — NO PASSWORD NEEDED</div>
+    <input class="login-input" id="ln-name" type="text" placeholder="Your Name" autocomplete="off"/>
+    <select class="login-input login-select" id="ln-class">
+      <option value="">Select Your Class</option>
+      <option>Nursery</option><option>LKG</option><option>UKG</option>
+      <option>Class 1</option><option>Class 2</option><option>Class 3</option>
+      <option>Class 4</option><option>Class 5</option><option>Class 6</option>
+      <option>Class 7</option><option>Class 8</option><option>Class 9</option>
+      <option>Class 10</option><option>Class 11</option><option>Class 12</option>
+    </select>
+    <select class="login-input login-select" id="ln-school">
+      <option value="">Select Your School</option>
+      <option value="gcs">Gurukul Convent School</option>
+      <option value="sps">Siddharth Public School</option>
+    </select>
+    <button onclick="doLogin()" style="width:100%;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#f59e0b,#fb7185);color:#fff;font-family:'Outfit',sans-serif;font-size:16px;font-weight:700;cursor:pointer;margin-bottom:10px">Enter Edutech →</button>
+    <button onclick="skipLogin()" style="width:100%;padding:10px;border-radius:14px;border:1.5px solid rgba(255,255,255,0.15);background:transparent;color:rgba(255,255,255,0.5);font-family:'Outfit',sans-serif;font-size:13px;cursor:pointer">Continue as Guest</button>
+  </div>
+</div>
+
+<!-- PROFILE DROPDOWN -->
+<div id="profile-dropdown">
+  <div style="font-size:11px;color:rgba(255,255,255,0.4);font-weight:600;letter-spacing:1px;margin-bottom:10px">YOUR PROFILE</div>
+  <div id="pd-name" style="color:#fff;font-weight:700;font-size:16px"></div>
+  <div id="pd-class" style="color:rgba(255,255,255,0.5);font-size:13px;margin-top:2px"></div>
+  <div id="pd-school" style="color:rgba(255,255,255,0.5);font-size:13px;margin-bottom:14px"></div>
+  <button onclick="logoutUser()" style="width:100%;padding:8px;border-radius:10px;border:1.5px solid rgba(255,107,107,0.4);background:rgba(255,107,107,0.1);color:#ff6b6b;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer">Sign Out</button>
+</div>
+
+<!-- LANDING PAGE -->
+<div id="landing" style="display:none;min-height:100vh;background:radial-gradient(circle at 50% 0%,#312e81 0%,transparent 45%),linear-gradient(160deg,#020617 0%,#0f172a 35%,#1e1b4b 70%,#020617 100%);padding:0 0 60px">
+
+  <!-- Floating corner controls -->
+  <div id="corner-stack">
+    <div id="corner-welcome" style="display:none"></div>
+    <button onclick="toggleProfile()" id="three-dots" class="corner-icon-btn" title="Profile">⋯</button>
+    <button onclick="openGamesHub('games')" class="corner-icon-btn games" title="Games">🎮</button>
+    <button onclick="openGamesHub('quizzes')" class="corner-icon-btn quizzes" title="Quizzes">📝</button>
+  </div>
+
+  <div class="hero-wrap" style="max-width:860px;margin:0 auto">
+    <!-- Hero -->
+    <div style="text-align:center;margin-bottom:32px">
+      <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:30px;padding:5px 16px;margin-bottom:14px">
+        <div style="width:7px;height:7px;border-radius:50%;background:#4ade80;box-shadow:0 0 8px #4ade80"></div>
+        <span style="color:#5eead4;font-size:11px;font-weight:600;letter-spacing:1px">SCHOOL AI ASSISTANT</span>
+      </div>
+      <h1 style="color:#fff;font-size:clamp(32px,7vw,58px);font-weight:800;margin-bottom:6px;line-height:1">
+        <span id="hero-greeting" style="display:block;font-size:clamp(14px,3vw,20px);font-weight:500;color:rgba(255,255,255,0.6);margin-bottom:4px"></span>
+        <span style="font-family:'Fraunces',serif;font-style:italic;font-weight:600;background:linear-gradient(90deg,#fbbf24,#fb7185,#f97316);-webkit-background-clip:text;-webkit-text-fill-color:transparent">Edutech</span>
+      </h1>
+      <p style="color:rgba(255,255,255,0.7);font-size:15px;font-weight:500;letter-spacing:0.2px;max-width:340px;margin:0 auto;line-height:1.6">
+        Fees, doubts, notices — answered instantly, any time, in your language. 🌐
+      </p>
+    </div>
+
+    <!-- School Cards -->
+    <div style="text-align:center;color:rgba(255,255,255,0.4);font-size:12px;font-weight:600;letter-spacing:1px;margin-bottom:14px">SELECT YOUR SCHOOL</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:18px;margin-bottom:32px">
+
+      <!-- Gurukul Card -->
+      <div class="school-card" style="background:rgba(255,255,255,0.07);border:1.5px solid rgba(255,255,255,0.1);border-radius:20px;padding:26px 22px;transition:all 0.22s ease;backdrop-filter:blur(10px)">
+        <div onclick="openChat('gcs')" style="cursor:pointer">
+          <div style="width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#0d9488,#f59e0b);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;margin-bottom:14px;box-shadow:0 4px 14px rgba(13,148,136,0.5);text-align:center;line-height:1.2">GCS<br/>AI</div>
+          <div style="color:#fff;font-weight:700;font-size:16px;margin-bottom:4px">Gurukul Convent School</div>
+          <div style="color:rgba(255,255,255,0.45);font-size:12px;margin-bottom:16px">📍 Bansi, Siddharthnagar (UP)</div>
+          <div style="display:flex;align-items:center;gap:7px;color:#f59e0b;font-size:13px;font-weight:600">
+            <div style="width:6px;height:6px;border-radius:50%;background:#4ade80"></div>GCS AI — Ask now →
+          </div>
+        </div>
+        <button class="notices-corner-btn" onclick="event.stopPropagation();openNotices('gcs')" title="Important Notices">
+          🔔<span class="dot" id="badge-gcs"></span>
+        </button>
+      </div>
+
+      <!-- Siddharth Public School Card -->
+      <div class="school-card" style="background:rgba(255,255,255,0.07);border:1.5px solid rgba(255,255,255,0.1);border-radius:20px;padding:26px 22px;transition:all 0.22s ease;backdrop-filter:blur(10px)">
+        <div onclick="openChat('sps')" style="cursor:pointer">
+          <div style="width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#1d4ed8,#0891b2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;margin-bottom:14px;box-shadow:0 4px 14px rgba(29,78,216,0.5);text-align:center;line-height:1.2">SPS<br/>AI</div>
+          <div style="color:#fff;font-weight:700;font-size:16px;margin-bottom:4px">Siddharth Public School</div>
+          <div style="color:rgba(255,255,255,0.45);font-size:12px;margin-bottom:16px">📍 Karunda Masina, Siddharthnagar (UP)</div>
+          <div style="display:flex;align-items:center;gap:7px;color:#38bdf8;font-size:13px;font-weight:600">
+            <div style="width:6px;height:6px;border-radius:50%;background:#4ade80"></div>SPS AI — Ask now →
+          </div>
+        </div>
+        <button class="notices-corner-btn" onclick="event.stopPropagation();openNotices('sps')" title="Important Notices">
+          🔔<span class="dot" id="badge-sps"></span>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Features -->
+    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-bottom:32px">
+      <div style="background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.25);border-radius:20px;padding:7px 14px;color:#fcd34d;font-size:12px;font-weight:600">⚡ Instant Answers</div>
+      <div style="background:rgba(94,234,212,0.1);border:1px solid rgba(94,234,212,0.25);border-radius:20px;padding:7px 14px;color:#5eead4;font-size:12px;font-weight:600">🌐 All Languages</div>
+      <div style="background:rgba(196,181,253,0.1);border:1px solid rgba(196,181,253,0.25);border-radius:20px;padding:7px 14px;color:#c4b5fd;font-size:12px;font-weight:600">📱 Mobile Friendly</div>
+      <div style="background:rgba(251,113,133,0.1);border:1px solid rgba(251,113,133,0.25);border-radius:20px;padding:7px 14px;color:#fb7185;font-size:12px;font-weight:600">🎓 Academic Doubts</div>
+    </div>
+
+    <!-- Feedback -->
+    <div class="reveal" style="background:rgba(255,255,255,0.06);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:28px 24px;margin-bottom:32px">
+      <div style="color:#a8d8ea;font-size:11px;font-weight:600;letter-spacing:1px;margin-bottom:10px">FEEDBACK</div>
+      <div style="color:#fff;font-weight:700;font-size:18px;margin-bottom:10px">💡 Got a suggestion?</div>
+      <p style="color:rgba(255,255,255,0.55);font-size:14px;line-height:1.7;margin-bottom:20px">Let us know what to fix or improve.</p>
+      <a href="mailto:schoolai2904@gmail.com" style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;text-decoration:none;padding:10px 20px;border-radius:12px;font-size:14px;font-weight:600">✉️ Send Feedback on Gmail</a>
+    </div>
+    <div style="text-align:center;color:rgba(255,255,255,0.25);font-size:12px">Built with ❤️ · Edutech</div>
+  </div>
+</div>
+
+<!-- NOTICES MODAL -->
+<div id="notices-modal">
+  <div id="notices-box">
+    <button class="game-close" onclick="closeNotices()">✕ Close</button>
+    <div id="notices-title" style="font-size:18px;font-weight:800;margin-bottom:2px">📢 Important Notices</div>
+    <div id="notices-school" style="font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:16px"></div>
+    <div id="notices-list"></div>
+  </div>
+</div>
+
+<!-- GAMES / QUIZZES HUB MODAL -->
+<div id="games-hub" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:150;align-items:flex-start;justify-content:center;backdrop-filter:blur(4px);overflow-y:auto;padding:16px 0">
+  <div style="background:linear-gradient(160deg,#0f172a,#1e1b4b);border-radius:24px;padding:22px 18px;width:92%;max-width:400px;margin:auto;color:#fff">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+      <div id="hub-title" style="font-size:18px;font-weight:800">🎮 Games</div>
+      <button onclick="closeGamesHub()" style="background:rgba(255,255,255,0.1);border:none;color:#fff;border-radius:8px;padding:6px 12px;cursor:pointer;font-family:'Outfit',sans-serif">✕</button>
+    </div>
+    <div id="hub-content"></div>
+  </div>
+</div>
+
+<!-- GAME MODAL -->
+<div id="game-modal">
+  <div id="game-box">
+    <button class="game-close" onclick="closeGame()">✕ Close</button>
+    <div id="game-title"></div>
+    <div id="game-status"></div>
+    <div id="game-content"></div>
+    <div style="text-align:center;margin-top:10px">
+      <button onclick="resetGame()" style="background:rgba(255,255,255,0.08);border:none;color:rgba(255,255,255,0.4);padding:6px 16px;border-radius:8px;cursor:pointer;font-family:'Outfit',sans-serif;font-size:12px">🔄 Reset</button>
+    </div>
+  </div>
+</div>
+
+<!-- CHAT PAGE -->
+<div id="chat" style="display:none;flex-direction:column;height:100vh;height:100dvh;background:linear-gradient(160deg,#f0f4ff 0%,#e9e4ff 35%,#fdeaf6 70%,#fff5e8 100%)">
+  <div id="chatHeader" style="background:linear-gradient(135deg,#0f766e,#0d9488);color:#fff;padding:14px 18px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 16px rgba(0,0,0,0.2)">
+    <button onclick="goBack()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;border-radius:8px;padding:7px 13px;cursor:pointer;font-size:13px;font-family:'Outfit',sans-serif;font-weight:600">← Back</button>
+    <div id="chatLogo" style="width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,#0d9488,#f59e0b);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;text-align:center;line-height:1.1">GCS<br/>AI</div>
+    <div>
+      <div id="chatBotName" style="font-weight:700;font-size:16px">GCS AI</div>
+      <div id="chatSchoolName" style="font-size:11px;opacity:0.8">Gurukul Convent School</div>
+    </div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:5px">
+      <div style="width:8px;height:8px;border-radius:50%;background:#4ade80;box-shadow:0 0 6px #4ade80"></div>
+      <span style="font-size:12px;opacity:0.9">Online</span>
+    </div>
+  </div>
+  <div id="messages" style="flex:1;overflow-y:auto;padding:18px 14px;display:flex;flex-direction:column;gap:10px"></div>
+  <div id="suggestions" style="display:none;padding:10px 14px 0;background:rgba(255,255,255,0.75);backdrop-filter:blur(10px)">
+    <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:10px;-webkit-overflow-scrolling:touch">
+      <button type="button" class="chip-btn" onmousedown="fillSuggestion('What is the fee for my class?')">💰 Fee</button>
+      <button type="button" class="chip-btn" onmousedown="fillSuggestion('What are the bus routes?')">🚌 Bus routes</button>
+      <button type="button" class="chip-btn" onmousedown="fillSuggestion('What is photosynthesis?')">🌿 Photosynthesis</button>
+      <button type="button" class="chip-btn" onmousedown="fillSuggestion(&quot;Explain Newton's laws&quot;)">🍎 Newton's laws</button>
+      <button type="button" class="chip-btn" onmousedown="fillSuggestion('Who is the principal?')">👩‍🏫 Principal</button>
+      <button type="button" class="chip-btn" onmousedown="fillSuggestion('School timing?')">🕐 Timing</button>
+    </div>
+  </div>
+  <!-- Input bar (camera feature removed) -->
+  <div style="padding:10px 14px 22px;background:rgba(255,255,255,0.75);backdrop-filter:blur(10px);border-top:1px solid rgba(0,0,0,0.06);display:flex;gap:8px;align-items:center">
+    <input id="userInput" type="text" placeholder="Ask anything — doubts, fees, notices..."
+      style="flex:1;padding:12px 16px;border-radius:25px;border:1.5px solid #e0e0e0;font-size:14px;font-family:'Outfit',sans-serif;outline:none;transition:border 0.2s"
+      onfocus="this.style.border='1.5px solid #0f766e';showSuggestions()"
+      onblur="this.style.border='1.5px solid #e0e0e0';hideSuggestions()"
+      onkeydown="if(event.key==='Enter')sendMsg()"/>
+    <button onclick="sendMsg()" id="sendBtn" style="width:44px;height:44px;border-radius:50%;border:none;background:linear-gradient(135deg,#0f766e,#0d9488);color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 12px rgba(15,118,110,0.4)">↑</button>
+  </div>
+</div>
+
+<script>
+// ─── SYSTEM PROMPTS ───────────────────────────────────────────────
+const PROMPTS = {
+  gcs: `You are GCS AI, the friendly AI assistant for Gurukul Convent School, built on the Edutech platform by Shashi Kapoor.
+
+LANGUAGE RULE — STRICT:
+- English is your PRIMARY reply language. Reply in English by default, even if the student writes in Hindi, Hinglish, or any other language — unless they have explicitly asked you (in this conversation) to reply in a different language.
+- If a student explicitly asks for a reply in a specific language (Hindi, Hinglish, or absolutely any other language — Tamil, Bhojpuri, French, etc.), switch to that language for your reply and keep using it until they ask to switch again.
+- At the END of every reply, always add a short, friendly line asking if they'd like the answer in a different language — for example: "Would you like this in Hindi or any other language? Just let me know! 🌐" Vary the phrasing naturally instead of repeating the exact same sentence every time.
+- Match their tone — casual if they're casual, formal if formal.
+
+ACADEMIC DOUBTS — ALWAYS ANSWER:
+- Any subject: Maths, Physics, Chemistry, Biology, English, Hindi, History, Geography, Economics, Political Science, Computer Science
+- Any class: Class 1 to 12 (CBSE / UP Board)
+- Competitive exams: JEE, NEET, UPSC basics
+- Give clear, simple explanations with examples.
+
+SCHOOL INFORMATION:
+School Name: Gurukul Convent School | Address: Siyarapar Bahbol, Bansi, Siddharthnagar (UP) | Timing: 8:00 AM to 2:00 PM
+Staff: Director: Shailash Pandey Sir | Principal: Neetu Pandey Ma'am | Vice Principal: Ramjeet Yadav Sir | Chemistry: Kuldeep Sir | Biology: Vibha Ma'am | Maths: Manoj Sir | Physics: Manish Sir | Hindi: Sweta Ma'am | English: Mohsin Sir | Social Science & System Manager: Mustkeem Sir
+Fees (Monthly): Nursery ₹500 | LKG ₹700 | UKG ₹800 | Class 1 ₹1000 | Class 2 ₹1200 | Class 3 ₹1300 | Class 4 ₹1500 | Class 6 ₹1600 | Class 7 ₹1800 | Class 8 ₹1900 | Class 9 ₹2000 | Class 10 ₹2200 | Class 11 ₹2400 | Class 12 ₹2500
+Bus Routes: Pathra, Beloha, Chetiya, Rudhauli
+
+ABOUT CREATOR: Built by Shashi Kapoor (student-developer, Siddharthnagar UP). Platform: Edutech. Contact: schoolai2904@gmail.com. If asked "who made this" → he is the developer, not the Bollywood actor.
+If info unavailable: "Please contact the school office directly — timing 8 AM to 2 PM."
+Always use Ma'am/Sir for teachers. Be warm and helpful!`,
+
+  sps: `You are SPS AI, the friendly AI assistant for Siddharth Public School, built on the Edutech platform by Shashi Kapoor.
+
+LANGUAGE RULE — STRICT:
+- English is your PRIMARY reply language. Reply in English by default, even if the student writes in Hindi, Hinglish, or any other language — unless they have explicitly asked you (in this conversation) to reply in a different language.
+- If a student explicitly asks for a reply in a specific language (Hindi, Hinglish, or absolutely any other language), switch to that language for your reply and keep using it until they ask to switch again.
+- At the END of every reply, always add a short, friendly line asking if they'd like the answer in a different language — for example: "Want this in Hindi or another language? Just tell me! 🌐" Vary the phrasing naturally instead of repeating the exact same sentence every time.
+
+ACADEMIC DOUBTS — ALWAYS ANSWER:
+- Any subject, Class 1 to 12, JEE/NEET level. Solve step by step. Use examples.
+
+SCHOOL INFORMATION:
+School Name: Siddharth Public School | Address: Karunda Masina, Siddharthnagar (UP) | Board: CBSE | Classes: Nursery–12 | Timing: 8:00 AM to 2:30 PM
+Staff: Principal: To be updated | Vice Principal: To be updated
+Fees (Monthly): Nursery ₹600 | LKG ₹800 | UKG ₹900 | Class 1 ₹1100 | Class 2 ₹1300 | Class 3 ₹1400 | Class 4 ₹1600 | Class 5 ₹1700 | Class 6 ₹1800 | Class 7 ₹1900 | Class 8 ₹2000 | Class 9 ₹2200 | Class 10 ₹2400 | Class 11 ₹2600 | Class 12 ₹2800
+Bus Routes: Available for nearby areas
+
+ABOUT CREATOR: Built by Shashi Kapoor. Platform: Edutech. Contact: schoolai2904@gmail.com.
+If info unavailable: "Please contact the school office directly."
+Always be warm and helpful!`
+};
+
+// ─────────────────────────────────────────────────────────────────
+// ⭐ IMPORTANT NOTICES — EDIT THIS SECTION TO UPDATE NOTICES ⭐
+// Just add/remove/edit objects in the arrays below. Each notice needs:
+//   title   → short heading
+//   date    → any text, e.g. "10 July 2026"
+//   desc    → the notice details
+//   urgent  → true/false (true shows it with a red highlight + counts in the badge)
+// The newest notice should usually go at the TOP of the array.
+// ─────────────────────────────────────────────────────────────────
+const NOTICES = {
+  gcs: [
+    // { title: "Summer Vacation Notice", date: "10 July 2026", desc: "School will remain closed from 15 July to 30 July for summer break. Classes resume 31 July.", urgent: true },
+    // { title: "PTM Scheduled", date: "5 July 2026", desc: "Parent-Teacher Meeting for Class 1–8 on 12 July, 10 AM onwards.", urgent: false },
+  ],
+  sps: [
+    // { title: "Annual Sports Day", date: "8 July 2026", desc: "Annual Sports Day will be held on 20 July. All students must reach school by 7:30 AM.", urgent: false },
+  ]
+};
+
+// ─── PROFILE / STUDENT LOGIN ───────────────────────────────────────
+let currentUser = null;
+
+function initApp() {
+  const saved = localStorage.getItem('edutech_user');
+  if(saved) {
+    currentUser = JSON.parse(saved);
+    showLanding();
+  } else {
+    document.getElementById('login-page').classList.add('open');
+  }
+  refreshNoticeBadges();
+}
+
+function doLogin() {
+  const name = document.getElementById('ln-name').value.trim();
+  const cls  = document.getElementById('ln-class').value;
+  const school = document.getElementById('ln-school').value;
+  if(!name) { alert('Please enter your name'); return; }
+  if(!cls)  { alert('Please select your class'); return; }
+  if(!school){ alert('Please select your school'); return; }
+  currentUser = {name, cls, school};
+  localStorage.setItem('edutech_user', JSON.stringify(currentUser));
+  document.getElementById('login-page').classList.remove('open');
+  showLanding();
+}
+
+function skipLogin() {
+  currentUser = null;
+  document.getElementById('login-page').classList.remove('open');
+  showLanding();
+}
+
+function showLanding() {
+  document.getElementById('landing').style.display = 'block';
+  const cornerWelcome = document.getElementById('corner-welcome');
+  if(currentUser) {
+    const hour = new Date().getHours();
+    const greet = hour<12?'Good morning':hour<17?'Good afternoon':'Good evening';
+    document.getElementById('hero-greeting').textContent = greet+', '+currentUser.name+'! 👋';
+    cornerWelcome.textContent = '👋 '+currentUser.name;
+    cornerWelcome.style.display = 'block';
+    document.getElementById('pd-name').textContent = '👤 '+currentUser.name;
+    document.getElementById('pd-class').textContent = '🏫 '+currentUser.cls;
+    const schoolLabel = currentUser.school==='gcs'?'Gurukul Convent School':'Siddharth Public School';
+    document.getElementById('pd-school').textContent = schoolLabel;
+  } else {
+    document.getElementById('hero-greeting').textContent = '';
+    cornerWelcome.style.display = 'none';
+  }
+  setTimeout(()=>{
+    document.querySelectorAll('.reveal').forEach(el=>revealObserver.observe(el));
+  },100);
+}
+
+function toggleProfile() {
+  document.getElementById('profile-dropdown').classList.toggle('open');
+}
+
+document.addEventListener('click', (e) => {
+  if(!e.target.closest('#profile-dropdown') && !e.target.closest('#three-dots'))
+    document.getElementById('profile-dropdown').classList.remove('open');
+});
+
+function logoutUser() {
+  localStorage.removeItem('edutech_user');
+  currentUser = null;
+  document.getElementById('profile-dropdown').classList.remove('open');
+  document.getElementById('landing').style.display = 'none';
+  document.getElementById('login-page').classList.add('open');
+  document.getElementById('ln-name').value='';
+  document.getElementById('ln-class').value='';
+  document.getElementById('ln-school').value='';
+}
+
+// ─── NOTICES ─────────────────────────────────────────────────────
+function refreshNoticeBadges(){
+  ['gcs','sps'].forEach(school=>{
+    const list = NOTICES[school]||[];
+    const badge = document.getElementById('badge-'+school);
+    badge.style.display = list.length>0 ? 'block' : 'none';
+  });
+}
+
+function openNotices(school){
+  const schoolName = school==='gcs' ? 'Gurukul Convent School' : 'Siddharth Public School';
+  document.getElementById('notices-school').textContent = schoolName;
+  const list = NOTICES[school]||[];
+  const listEl = document.getElementById('notices-list');
+  if(list.length===0){
+    listEl.innerHTML = `<div style="text-align:center;padding:30px 10px;color:rgba(255,255,255,0.5);font-size:13px">No notices right now. Check back soon! 📭</div>`;
+  } else {
+    listEl.innerHTML = list.map(n=>`
+      <div class="notice-card ${n.urgent?'urgent':''}">
+        <div class="notice-date">${n.urgent?'🔴 URGENT · ':''}${n.date||''}</div>
+        <div class="notice-title">${n.title}</div>
+        <div class="notice-desc">${n.desc}</div>
+      </div>
+    `).join('');
+  }
+  document.getElementById('notices-modal').classList.add('open');
+}
+
+function closeNotices(){
+  document.getElementById('notices-modal').classList.remove('open');
+}
+
+// ─── CHAT ────────────────────────────────────────────────────────
+let chatHistory = [];
+let currentSchool = 'gcs';
+
+function openChat(school) {
+  currentSchool = school;
+  const isGCS = school==='gcs';
+  const name = isGCS?'GCS AI':'SPS AI';
+  const schoolName = isGCS?'Gurukul Convent School':'Siddharth Public School';
+  const bg = isGCS?'linear-gradient(135deg,#0f766e,#0d9488)':'linear-gradient(135deg,#1d4ed8,#0891b2)';
+  const logoBg = isGCS?'linear-gradient(135deg,#0d9488,#f59e0b)':'linear-gradient(135deg,#1d4ed8,#38bdf8)';
+
+  document.getElementById('chatBotName').textContent = name;
+  document.getElementById('chatSchoolName').textContent = schoolName;
+  document.getElementById('chatLogo').innerHTML = isGCS?'GCS<br/>AI':'SPS<br/>AI';
+  document.getElementById('chatLogo').style.background = logoBg;
+  document.getElementById('chatHeader').style.background = bg;
+  document.getElementById('sendBtn').style.background = bg;
+
+  chatHistory = [];
+  let greeting = `Hello! 👋 I'm <strong>${name}</strong> — AI assistant of ${schoolName}.<br/>Ask me anything — fees, teachers, academic doubts, JEE/NEET prep!`;
+  if(currentUser) greeting = `Hello <strong>${currentUser.name}</strong>! 👋 I'm <strong>${name}</strong>.<br/>Ask me anything — fees, teachers, doubts, JEE/NEET prep!`;
+
+  document.getElementById('messages').innerHTML = `<div class="msg" style="display:flex;align-items:flex-end;gap:8px">
+    <div style="width:34px;height:34px;border-radius:50%;background:${logoBg};display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🏫</div>
+    <div style="max-width:80%;padding:12px 15px;border-radius:4px 18px 18px 18px;background:#fff;color:#1a1a2e;box-shadow:0 2px 8px rgba(0,0,0,0.08);font-size:14px;line-height:1.7">${greeting}<br/><span style="opacity:0.6;font-size:12px">(I reply in English by default — just ask and I'll switch to Hindi or any other language! 🌐)</span></div>
+  </div>`;
+
+  document.getElementById('landing').style.display='none';
+  document.getElementById('chat').style.display='flex';
+  document.body.style.overflow='hidden';
+}
+
+function goBack() {
+  document.getElementById('chat').style.display='none';
+  document.getElementById('landing').style.display='block';
+  document.body.style.overflow='auto';
+  chatHistory=[];
+}
+
+function showSuggestions() { document.getElementById('suggestions').style.display='block'; }
+function hideSuggestions() { setTimeout(()=>{document.getElementById('suggestions').style.display='none';},150); }
+function fillSuggestion(text) { document.getElementById('userInput').value=text; sendMsg(); }
+
+function addMsg(role, text) {
+  const msgs = document.getElementById('messages');
+  const isUser = role==='user';
+  const isGCS = currentSchool==='gcs';
+  const bg = isGCS?'linear-gradient(135deg,#0f766e,#0d9488)':'linear-gradient(135deg,#1d4ed8,#0891b2)';
+  const avatarBg = isGCS?'linear-gradient(135deg,#0d9488,#f59e0b)':'linear-gradient(135deg,#1d4ed8,#38bdf8)';
+  const div = document.createElement('div');
+  div.className='msg';
+  div.style.cssText=`display:flex;justify-content:${isUser?'flex-end':'flex-start'};align-items:flex-end;gap:8px`;
+  const formatted = (text||'').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\*(.*?)\*/g,'<em>$1</em>').replace(/\n/g,'<br/>');
+  if(isUser) {
+    div.innerHTML=`<div style="max-width:80%;padding:11px 15px;border-radius:18px 18px 4px 18px;background:${bg};color:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.1);font-size:14px;line-height:1.65">${formatted}</div>`;
+  } else {
+    div.innerHTML=`<div style="width:34px;height:34px;border-radius:50%;background:${avatarBg};display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🏫</div>
+      <div style="max-width:80%;padding:12px 15px;border-radius:4px 18px 18px 18px;background:#fff;color:#1a1a2e;box-shadow:0 2px 8px rgba(0,0,0,0.08);font-size:14px;line-height:1.7">${formatted}</div>`;
+  }
+  msgs.appendChild(div);
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
+function showTyping() {
+  const msgs=document.getElementById('messages');
+  const isGCS=currentSchool==='gcs';
+  const avatarBg=isGCS?'linear-gradient(135deg,#0d9488,#f59e0b)':'linear-gradient(135deg,#1d4ed8,#38bdf8)';
+  const div=document.createElement('div');
+  div.id='typing'; div.style.cssText='display:flex;align-items:flex-end;gap:8px';
+  div.innerHTML=`<div style="width:34px;height:34px;border-radius:50%;background:${avatarBg};display:flex;align-items:center;justify-content:center;font-size:16px">🏫</div>
+    <div style="background:#fff;padding:12px 16px;border-radius:4px 18px 18px 18px;box-shadow:0 2px 8px rgba(0,0,0,0.08);display:flex;gap:4px;align-items:center">
+      <div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`;
+  msgs.appendChild(div); msgs.scrollTop=msgs.scrollHeight;
+}
+function removeTyping(){const t=document.getElementById('typing');if(t)t.remove();}
+
+async function sendMsg() {
+  const input=document.getElementById('userInput');
+  const text=input.value.trim();
+  if(!text) return;
+  input.value=''; addMsg('user',text);
+  chatHistory.push({role:'user',content:text});
+  const btn=document.getElementById('sendBtn');
+  btn.disabled=true; btn.style.background='#ccc'; showTyping();
+  try {
+    const res=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({messages:[{role:'system',content:PROMPTS[currentSchool]},...chatHistory]})});
+    const data=await res.json();
+    const reply=data.choices?.[0]?.message?.content||'Sorry, please try again!';
+    removeTyping(); addMsg('assistant',reply);
+    chatHistory.push({role:'assistant',content:reply});
+  } catch(e){removeTyping();addMsg('assistant','Sorry, connection issue. Please try again!');}
+  btn.disabled=false;
+  btn.style.background=currentSchool==='gcs'?'linear-gradient(135deg,#0f766e,#0d9488)':'linear-gradient(135deg,#1d4ed8,#0891b2)';
+}
+
+// ─── GAMES HUB ───────────────────────────────────────────────────
+function openGamesHub(mode){
+  const titleEl = document.getElementById('hub-title');
+  const contentEl = document.getElementById('hub-content');
+  if(mode==='quizzes'){
+    titleEl.textContent = '📝 Quizzes';
+    contentEl.innerHTML = `
+      <div style="color:rgba(255,255,255,0.4);font-size:11px;font-weight:600;letter-spacing:1px;margin-bottom:12px">CHOOSE A SUBJECT</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+        <div class="game-card" onclick="openGame('quiz','science')"><div class="icon">🔬</div><div class="label">Science</div></div>
+        <div class="game-card" onclick="openGame('quiz','maths')"><div class="icon">➗</div><div class="label">Maths</div></div>
+        <div class="game-card" onclick="openGame('quiz','english')"><div class="icon">📖</div><div class="label">English</div></div>
+        <div class="game-card" onclick="openGame('quiz','hindi')"><div class="icon">🇮🇳</div><div class="label">Hindi</div></div>
+        <div class="game-card" onclick="openGame('quiz','social')"><div class="icon">🌍</div><div class="label">Social</div></div>
+      </div>`;
+  } else {
+    titleEl.textContent = '🎮 Games';
+    contentEl.innerHTML = `
+      <div style="color:rgba(255,255,255,0.4);font-size:11px;font-weight:600;letter-spacing:1px;margin-bottom:12px">PICK A GAME</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="game-card" onclick="openGame('ttt')"><div class="icon">⭕</div><div class="label">Tic-Tac-Toe</div><div class="desc">vs Friend or AI</div></div>
+        <div class="game-card" onclick="openGame('chess')"><div class="icon">♟️</div><div class="label">Chess</div><div class="desc">vs Friend or AI</div></div>
+      </div>`;
+  }
+  document.getElementById('games-hub').style.display='flex';
+}
+function closeGamesHub(){ document.getElementById('games-hub').style.display='none'; }
+
+// ─── GAME ENGINE ─────────────────────────────────────────────────
+let currentGame='', currentGameSub='';
+let tttBoard=Array(9).fill(''),tttTurn='X',tttOver=false,tttMode='friend';
+let chessBoard=[],chessTurn='w',chessMode='friend',chessSelected=null,chessLegalMoves=[],chessOver=false,chessStatusMsg='';
+let quizSubject='science',quizClass='Class 6',quizQ=null,quizAnswered=false,quizScore=0,quizTotal=0;
+let usedQuestions={};
+
+function openGame(game, sub) {
+  closeGamesHub();
+  currentGame=game; currentGameSub=sub||'';
+  document.getElementById('game-modal').classList.add('open');
+  if(game==='ttt'){tttBoard=Array(9).fill('');tttTurn='X';tttOver=false;renderTTT();}
+  else if(game==='chess'){chessInit();}
+  else if(game==='quiz'){quizSubject=sub;quizScore=0;quizTotal=0;usedQuestions={};renderQuiz();}
+}
+function closeGame(){document.getElementById('game-modal').classList.remove('open');}
+function resetGame(){
+  if(currentGame==='ttt'){tttBoard=Array(9).fill('');tttTurn='X';tttOver=false;renderTTT();}
+  else if(currentGame==='chess'){chessInit(chessMode);}
+  else if(currentGame==='quiz'){quizScore=0;quizTotal=0;usedQuestions={};renderQuiz();}
+}
+
+// ── TTT ──
+const WIN_LINES=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+function tttCheckResult(){
+  for(const[a,b,c]of WIN_LINES)if(tttBoard[a]&&tttBoard[a]===tttBoard[b]&&tttBoard[a]===tttBoard[c])return{winner:tttBoard[a],line:[a,b,c]};
+  if(tttBoard.every(v=>v))return{winner:'Draw',line:[]};return null;
+}
+function setTTTMode(m){tttMode=m;tttBoard=Array(9).fill('');tttTurn='X';tttOver=false;renderTTT();}
+function renderTTT(){
+  document.getElementById('game-title').textContent='⭕ Tic-Tac-Toe';
+  const result=tttCheckResult();const winLine=result&&result.winner!=='Draw'?result.line:[];
+  let statusHTML='';
+  if(result){
+    if(result.winner==='Draw')statusHTML=`<div class="win-banner">🤝 Draw!</div>`;
+    else if(tttMode==='ai')statusHTML=`<div class="win-banner">${result.winner==='X'?'🎉 You Win!':'🤖 AI Wins!'}</div>`;
+    else statusHTML=`<div class="win-banner">🎉 Player ${result.winner} Wins!</div>`;
+  }else{
+    statusHTML=`<span>${tttMode==='ai'?(tttTurn==='X'?'Your turn (X)':'🤖 AI thinking...'):`Player ${tttTurn}'s turn`}</span>`;
+  }
+  const boardHTML=`<div id="ttt-board">${tttBoard.map((v,i)=>`<div class="ttt-cell ${v.toLowerCase()} ${winLine.includes(i)?'winner':''}" onclick="tttClick(${i})">${v}</div>`).join('')}</div>`;
+  const playAgain=result?`<div style="text-align:center;margin-top:10px"><button onclick="resetGame()" style="background:linear-gradient(135deg,#f0a500,#ff6b6b);border:none;color:#fff;padding:10px 28px;border-radius:12px;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:700;font-size:14px">▶ Play Again</button></div>`:'';
+  document.getElementById('game-status').innerHTML=statusHTML;
+  document.getElementById('game-content').innerHTML=`<div style="display:flex;gap:8px;justify-content:center;margin-bottom:10px">
+    <button class="mode-btn ${tttMode==='friend'?'active':''}" onclick="setTTTMode('friend')">👥 vs Friend</button>
+    <button class="mode-btn ${tttMode==='ai'?'active':''}" onclick="setTTTMode('ai')">🤖 vs AI</button></div>
+    ${boardHTML}${playAgain}`;
+}
+function tttClick(i){
+  if(tttOver||tttBoard[i]||tttCheckResult())return;
+  if(tttMode==='ai'&&tttTurn==='O')return;
+  tttBoard[i]=tttTurn;const result=tttCheckResult();
+  if(result){tttOver=true;renderTTT();return;}
+  tttTurn=tttTurn==='X'?'O':'X';renderTTT();
+  if(tttMode==='ai'&&tttTurn==='O'&&!tttCheckResult()){
+    setTimeout(()=>{const m=tttAiMove();if(m!==-1){tttBoard[m]='O';const r=tttCheckResult();if(r)tttOver=true;else tttTurn='X';renderTTT();}},450);
+  }
+}
+function tttAiMove(){
+  for(const[a,b,c]of WIN_LINES){const l=[a,b,c],os=l.filter(i=>tttBoard[i]==='O'),em=l.filter(i=>!tttBoard[i]);if(os.length===2&&em.length===1)return em[0];}
+  for(const[a,b,c]of WIN_LINES){const l=[a,b,c],xs=l.filter(i=>tttBoard[i]==='X'),em=l.filter(i=>!tttBoard[i]);if(xs.length===2&&em.length===1)return em[0];}
+  if(!tttBoard[4])return 4;
+  const corners=[0,2,6,8].filter(i=>!tttBoard[i]);if(corners.length)return corners[Math.floor(Math.random()*corners.length)];
+  const empty=tttBoard.map((v,i)=>v?-1:i).filter(i=>i>=0);return empty.length?empty[Math.floor(Math.random()*empty.length)]:-1;
+}
+
+// ── Chess ──
+const CHESS_GLYPH={wK:'♔',wQ:'♕',wR:'♖',wB:'♗',wN:'♘',wP:'♙',bK:'♚',bQ:'♛',bR:'♜',bB:'♝',bN:'♞',bP:'♟'};
+function chessInit(mode){
+  chessMode=mode||'friend';chessTurn='w';chessSelected=null;chessLegalMoves=[];chessOver=false;chessStatusMsg='';
+  const back=['R','N','B','Q','K','B','N','R'];
+  chessBoard=Array(8).fill(null).map(()=>Array(8).fill(null));
+  for(let c=0;c<8;c++){chessBoard[0][c]={t:back[c],color:'b'};chessBoard[1][c]={t:'P',color:'b'};chessBoard[6][c]={t:'P',color:'w'};chessBoard[7][c]={t:back[c],color:'w'};}
+  renderChess();
+}
+function chessSetMode(m){chessInit(m);}
+function chessCloneBoard(b){return b.map(row=>row.map(cell=>cell?{...cell}:null));}
+function chessFindKing(board,color){for(let r=0;r<8;r++)for(let c=0;c<8;c++)if(board[r][c]&&board[r][c].t==='K'&&board[r][c].color===color)return[r,c];return null;}
+function chessSquareAttacked(board,r,c,byColor){for(let rr=0;rr<8;rr++)for(let cc=0;cc<8;cc++){const p=board[rr][cc];if(p&&p.color===byColor){const moves=chessRawMoves(board,rr,cc,true);if(moves.some(m=>m[0]===r&&m[1]===c))return true;}}return false;}
+function chessRawMoves(board,r,c,forAttackCheck){
+  const p=board[r][c];if(!p)return[];const moves=[];const dir=p.color==='w'?-1:1;const enemy=p.color==='w'?'b':'w';
+  const addSlide=(dr,dc)=>{let rr=r+dr,cc=c+dc;while(rr>=0&&rr<8&&cc>=0&&cc<8){if(!board[rr][cc]){moves.push([rr,cc]);}else{if(board[rr][cc].color===enemy)moves.push([rr,cc]);break;}rr+=dr;cc+=dc;}};
+  if(p.t==='P'){const startRow=p.color==='w'?6:1;if(!forAttackCheck){if(r+dir>=0&&r+dir<8&&!board[r+dir][c]){moves.push([r+dir,c]);if(r===startRow&&!board[r+2*dir][c])moves.push([r+2*dir,c]);}}for(const dc of[-1,1]){const rr=r+dir,cc=c+dc;if(rr>=0&&rr<8&&cc>=0&&cc<8){if(forAttackCheck)moves.push([rr,cc]);else if(board[rr][cc]&&board[rr][cc].color===enemy)moves.push([rr,cc]);}}}
+  else if(p.t==='N'){const deltas=[[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];for(const[dr,dc]of deltas){const rr=r+dr,cc=c+dc;if(rr>=0&&rr<8&&cc>=0&&cc<8&&(!board[rr][cc]||board[rr][cc].color===enemy))moves.push([rr,cc]);}}
+  else if(p.t==='B'){addSlide(-1,-1);addSlide(-1,1);addSlide(1,-1);addSlide(1,1);}
+  else if(p.t==='R'){addSlide(-1,0);addSlide(1,0);addSlide(0,-1);addSlide(0,1);}
+  else if(p.t==='Q'){addSlide(-1,-1);addSlide(-1,1);addSlide(1,-1);addSlide(1,1);addSlide(-1,0);addSlide(1,0);addSlide(0,-1);addSlide(0,1);}
+  else if(p.t==='K'){for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){if(dr===0&&dc===0)continue;const rr=r+dr,cc=c+dc;if(rr>=0&&rr<8&&cc>=0&&cc<8&&(!board[rr][cc]||board[rr][cc].color===enemy))moves.push([rr,cc]);}}
+  return moves;
+}
+function chessLegalMovesFor(board,r,c){
+  const p=board[r][c];if(!p)return[];
+  return chessRawMoves(board,r,c,false).filter(([rr,cc])=>{const clone=chessCloneBoard(board);clone[rr][cc]=clone[r][c];clone[r][c]=null;const k=chessFindKing(clone,p.color);return k&&!chessSquareAttacked(clone,k[0],k[1],p.color==='w'?'b':'w');});
+}
+function chessAllLegalMoves(board,color){const all=[];for(let r=0;r<8;r++)for(let c=0;c<8;c++){const p=board[r][c];if(p&&p.color===color){for(const m of chessLegalMovesFor(board,r,c))all.push({from:[r,c],to:m});}}return all;}
+function chessInCheck(board,color){const k=chessFindKing(board,color);return k&&chessSquareAttacked(board,k[0],k[1],color==='w'?'b':'w');}
+function chessMakeMove(from,to){const p=chessBoard[from[0]][from[1]];chessBoard[to[0]][to[1]]=p;chessBoard[from[0]][from[1]]=null;if(p.t==='P'&&(to[0]===0||to[0]===7))p.t='Q';}
+function chessClick(r,c){
+  if(chessOver)return;if(chessMode==='ai'&&chessTurn==='b')return;
+  const piece=chessBoard[r][c];
+  if(chessSelected){
+    if(chessLegalMoves.some(m=>m[0]===r&&m[1]===c)){chessMakeMove(chessSelected,[r,c]);chessSelected=null;chessLegalMoves=[];chessAfterMove();return;}
+    if(piece&&piece.color===chessTurn){chessSelected=[r,c];chessLegalMoves=chessLegalMovesFor(chessBoard,r,c);renderChess();return;}
+    chessSelected=null;chessLegalMoves=[];renderChess();return;
+  }
+  if(piece&&piece.color===chessTurn){chessSelected=[r,c];chessLegalMoves=chessLegalMovesFor(chessBoard,r,c);renderChess();}
+}
+function chessAfterMove(){
+  chessTurn=chessTurn==='w'?'b':'w';
+  const moves=chessAllLegalMoves(chessBoard,chessTurn);const inCheck=chessInCheck(chessBoard,chessTurn);
+  if(moves.length===0){chessOver=true;chessStatusMsg=inCheck?`♚ Checkmate! ${chessTurn==='w'?(chessMode==='ai'?'🤖 AI':'Black'):'White'} wins!`:`🤝 Stalemate — Draw!`;renderChess();return;}
+  chessStatusMsg=inCheck?'⚠️ Check!':'';renderChess();
+  if(chessMode==='ai'&&chessTurn==='b'&&!chessOver)setTimeout(chessAiMove,500);
+}
+function chessEval(board){const val={P:1,N:3,B:3,R:5,Q:9,K:0};let s=0;for(let r=0;r<8;r++)for(let c=0;c<8;c++){const p=board[r][c];if(p)s+=(p.color==='w'?1:-1)*val[p.t];}return s;}
+function chessAiMove(){
+  const moves=chessAllLegalMoves(chessBoard,'b');if(!moves.length)return;
+  let best=-Infinity,bestMoves=[];
+  for(const mv of moves){const clone=chessCloneBoard(chessBoard);const p=clone[mv.from[0]][mv.from[1]];clone[mv.to[0]][mv.to[1]]=p;clone[mv.from[0]][mv.from[1]]=null;if(p.t==='P'&&(mv.to[0]===0||mv.to[0]===7))p.t='Q';
+    const score=-chessEval(clone)+(Math.random()*0.3);if(score>best){best=score;bestMoves=[mv];}else if(score===best)bestMoves.push(mv);}
+  const chosen=bestMoves[Math.floor(Math.random()*bestMoves.length)];chessMakeMove(chosen.from,chosen.to);chessAfterMove();
+}
+function renderChess(){
+  document.getElementById('game-title').textContent='♟️ Chess';
+  const kingCheckPos=chessInCheck(chessBoard,chessTurn)?chessFindKing(chessBoard,chessTurn):null;
+  let statusHTML=chessOver?`<div class="win-banner" style="font-size:17px">${chessStatusMsg}</div>`:
+    `<span>${chessStatusMsg?(chessStatusMsg+' — '):''}${chessTurn==='w'?'Your turn (White)':(chessMode==='ai'?'🤖 AI thinking...':"Black's turn")}</span>`;
+  let cells='';
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+    const p=chessBoard[r][c];const isLight=(r+c)%2===0;
+    const isSel=chessSelected&&chessSelected[0]===r&&chessSelected[1]===c;
+    const isMT=chessLegalMoves.some(m=>m[0]===r&&m[1]===c);const isCap=isMT&&p;
+    const isChk=kingCheckPos&&kingCheckPos[0]===r&&kingCheckPos[1]===c;
+    cells+=`<div class="chess-cell ${isLight?'light':'dark'}${isSel?' selected':''}${isMT&&!isCap?' move-dot':''}${isCap?' capture-hint':''}${isChk?' in-check':''}" onclick="chessClick(${r},${c})" style="color:${p&&p.color==='b'?'#1a1a2e':'#fff'};text-shadow:${p?'0 1px 3px rgba(0,0,0,0.4)':'none'}">${p?CHESS_GLYPH[p.color+p.t]:''}</div>`;
+  }
+  const playAgain=chessOver?`<div style="text-align:center;margin-top:10px"><button onclick="resetGame()" style="background:linear-gradient(135deg,#f0a500,#ff6b6b);border:none;color:#fff;padding:10px 28px;border-radius:12px;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:700;font-size:14px">▶ Play Again</button></div>`:'';
+  document.getElementById('game-status').innerHTML=statusHTML;
+  document.getElementById('game-content').innerHTML=`<div style="display:flex;gap:8px;justify-content:center;margin-bottom:8px">
+    <button class="mode-btn ${chessMode==='friend'?'active':''}" onclick="chessSetMode('friend')">👥 vs Friend</button>
+    <button class="mode-btn ${chessMode==='ai'?'active':''}" onclick="chessSetMode('ai')">🤖 vs AI</button></div>
+    <div id="chess-board">${cells}</div>${playAgain}`;
+}
+
+// ── Quiz ──
+const QUIZ_BANK = {
+  science:{
+    'Class 6':[
+      {q:'What is the process by which plants make food?',opts:['Respiration','Photosynthesis','Digestion','Excretion'],ans:1},
+      {q:'Which planet is closest to the Sun?',opts:['Earth','Venus','Mercury','Mars'],ans:2},
+      {q:'What is the chemical symbol for water?',opts:['CO2','H2O','O2','NaCl'],ans:1},
+      {q:'How many bones are in the adult human body?',opts:['206','200','212','196'],ans:0},
+      {q:'What gas do plants absorb from air for photosynthesis?',opts:['Oxygen','Nitrogen','Carbon Dioxide','Hydrogen'],ans:2},
+      {q:'Which organ pumps blood through the body?',opts:['Liver','Kidney','Lungs','Heart'],ans:3},
+      {q:'What is the boiling point of water at sea level?',opts:['50°C','100°C','75°C','120°C'],ans:1},
+      {q:'Light travels at approximately how many km/s?',opts:['100,000','3,00,000','1,50,000','50,000'],ans:1},
+    ],
+    'Class 9':[
+      {q:'Which law states that force equals mass times acceleration?',opts:["Newton's 1st Law","Newton's 2nd Law","Newton's 3rd Law","Law of Gravity"],ans:1},
+      {q:'What is the atomic number of Carbon?',opts:['6','8','12','4'],ans:0},
+      {q:'Which organelle is called the powerhouse of the cell?',opts:['Nucleus','Ribosome','Mitochondria','Chloroplast'],ans:2},
+      {q:'What is the SI unit of force?',opts:['Joule','Newton','Watt','Pascal'],ans:1},
+      {q:'DNA stands for:',opts:['Di-Nucleic Acid','Deoxyribonucleic Acid','Dynamic Nucleic Acid','Deoxyribose Acid'],ans:1},
+      {q:'Which gas is produced during photosynthesis?',opts:['Carbon Dioxide','Nitrogen','Oxygen','Hydrogen'],ans:2},
+    ],
+    'Class 11':[
+      {q:'Which subatomic particle has no charge?',opts:['Proton','Electron','Neutron','Positron'],ans:2},
+      {q:'The SI unit of electric current is:',opts:['Volt','Ohm','Ampere','Watt'],ans:2},
+      {q:'What is the speed of light in vacuum?',opts:['3×10⁸ m/s','3×10⁶ m/s','3×10¹⁰ m/s','3×10⁴ m/s'],ans:0},
+      {q:'Which acid is present in vinegar?',opts:['Hydrochloric','Acetic','Sulphuric','Nitric'],ans:1},
+      {q:'What is the formula for kinetic energy?',opts:['mgh','½mv²','mv','Fd'],ans:1},
+    ],
+  },
+  maths:{
+    'Class 6':[
+      {q:'What is 15 × 12?',opts:['170','180','175','165'],ans:1},
+      {q:'The sum of angles in a triangle is:',opts:['90°','180°','270°','360°'],ans:1},
+      {q:'What is the LCM of 4 and 6?',opts:['12','24','8','16'],ans:0},
+      {q:'What is 25% of 200?',opts:['25','40','50','75'],ans:2},
+      {q:'The perimeter of a square with side 7 cm is:',opts:['21 cm','28 cm','14 cm','49 cm'],ans:1},
+      {q:'What is √144?',opts:['11','12','13','14'],ans:1},
+      {q:'Which is a prime number?',opts:['9','15','17','21'],ans:2},
+    ],
+    'Class 9':[
+      {q:'The value of π (pi) is approximately:',opts:['3.14','3.41','3.12','3.16'],ans:0},
+      {q:"Pythagoras theorem: In a right triangle, a²+b²=?",opts:['c','c²','2c','c³'],ans:1},
+      {q:'What is the slope of a horizontal line?',opts:['1','Undefined','0','Infinity'],ans:2},
+      {q:'Area of a circle with radius r:',opts:['2πr','πr²','πd','2πr²'],ans:1},
+      {q:'If x+5=12, what is x?',opts:['5','6','7','8'],ans:2},
+    ],
+    'Class 11':[
+      {q:'What is sin(90°)?',opts:['0','1','-1','½'],ans:1},
+      {q:'The derivative of x² is:',opts:['x','2x','x²','2'],ans:1},
+      {q:'log(1) = ?',opts:['1','0','∞','-1'],ans:1},
+      {q:'nC0 is always equal to:',opts:['n','0','1','n!'],ans:2},
+      {q:'If A∩B = ∅, sets A and B are called:',opts:['Equal sets','Disjoint sets','Subsets','Universal sets'],ans:1},
+    ],
+  },
+  english:{
+    'Class 6':[
+      {q:"What is the plural of 'child'?",opts:['Childs','Children','Childes','Child'],ans:1},
+      {q:"Which is a proper noun?",opts:['city','school','Rahul','teacher'],ans:2},
+      {q:"'He runs fast.' What tense is this?",opts:['Past','Future','Present Simple','Present Perfect'],ans:2},
+      {q:"The opposite of 'beautiful' is:",opts:['Pretty','Ugly','Lovely','Handsome'],ans:1},
+      {q:"What is a synonym for 'happy'?",opts:['Sad','Angry','Joyful','Tired'],ans:2},
+      {q:"'She sings a song.' Identify the verb:",opts:['She','Sings','Song','A'],ans:1},
+    ],
+    'Class 9':[
+      {q:"Which figure of speech is used in 'Life is a journey'?",opts:['Simile','Personification','Metaphor','Alliteration'],ans:2},
+      {q:"The passive voice of 'He eats an apple' is:",opts:['An apple is eaten by him','An apple was eaten','He is eating','Apple eaten'],ans:0},
+      {q:"'Although he tried, he failed.' This is a:",opts:['Simple sentence','Compound sentence','Complex sentence','Fragment'],ans:2},
+      {q:"What does 'eloquent' mean?",opts:['Silent','Fluent and persuasive','Angry','Confused'],ans:1},
+    ],
+  },
+  hindi:{
+    'Class 6':[
+      {q:"'सूर्य' का अर्थ क्या है?",opts:['चन्द्रमा','सूरज','तारा','आकाश'],ans:1},
+      {q:"'खुशी' का विलोम शब्द क्या है?",opts:['प्रसन्नता','आनंद','दुःख','उत्साह'],ans:2},
+      {q:"'राम ने खाना खाया।' — इस वाक्य में कर्ता कौन है?",opts:['खाना','खाया','राम','ने'],ans:2},
+      {q:"हिंदी वर्णमाला में कितने स्वर होते हैं?",opts:['11','13','16','10'],ans:0},
+      {q:"'पानी' का पर्यायवाची शब्द है:",opts:['आग','जल','वायु','भूमि'],ans:1},
+    ],
+    'Class 9':[
+      {q:"'कबीरदास' किस काल के कवि हैं?",opts:['रीतिकाल','भक्तिकाल','आदिकाल','आधुनिककाल'],ans:1},
+      {q:"'मैंने पुस्तक पढ़ी।' — वाक्य में काल बताइए:",opts:['सामान्य वर्तमान','सामान्य भूत','सामान्य भविष्य','संदिग्ध भूत'],ans:1},
+      {q:"'आँख' का बहुवचन है:",opts:['आँखे','आँखें','आँखों','आँख'],ans:1},
+      {q:"दोहे में चरणों की संख्या होती है:",opts:['2','3','4','6'],ans:0},
+    ],
+  },
+  social:{
+    'Class 6':[
+      {q:"India's capital is:",opts:['Mumbai','Kolkata','New Delhi','Chennai'],ans:2},
+      {q:"The Indus Valley Civilization was located in present-day:",opts:['India only','Pakistan only','India and Pakistan','Afghanistan'],ans:2},
+      {q:"Who wrote the Indian National Anthem?",opts:['M.K. Gandhi','Rabindranath Tagore','Bankim Chandra','Sarojini Naidu'],ans:1},
+      {q:"Which is the longest river in India?",opts:['Godavari','Yamuna','Ganga','Brahmaputra'],ans:2},
+      {q:"The Preamble of the Indian Constitution begins with:",opts:['"We the Citizens"','"We the People"','"We the People of India"','"We the Nation"'],ans:2},
+    ],
+    'Class 9':[
+      {q:"The French Revolution began in which year?",opts:['1776','1789','1815','1799'],ans:1},
+      {q:"Which Article of Indian Constitution abolishes untouchability?",opts:['Article 14','Article 15','Article 17','Article 21'],ans:2},
+      {q:"The Tropic of Cancer passes through how many Indian states?",opts:['6','7','8','9'],ans:2},
+      {q:"GDP stands for:",opts:['Gross Domestic Product','General Development Plan','Government Domestic Policy','Gross Development Plan'],ans:0},
+      {q:"Which soil is best for growing cotton in India?",opts:['Alluvial','Red','Black (Regur)','Laterite'],ans:2},
+    ],
+  }
+};
+
+// Default class questions (used when specific class not found)
+function getQuizQuestions(subject, cls) {
+  const subBank = QUIZ_BANK[subject];
+  if(!subBank) return [];
+  if(subBank[cls]) return subBank[cls];
+  const keys = Object.keys(subBank);
+  const classNum = parseInt(cls.replace('Class ','')) || 0;
+  let closest = keys[0];
+  let minDiff = Infinity;
+  for(const k of keys){
+    const kn = parseInt(k.replace('Class ',''))||0;
+    if(Math.abs(kn-classNum)<minDiff){minDiff=Math.abs(kn-classNum);closest=k;}
+  }
+  return subBank[closest]||[];
+}
+
+function renderQuiz() {
+  const subjectEmoji = {science:'🔬',maths:'➗',english:'📖',hindi:'🇮🇳',social:'🌍'};
+  document.getElementById('game-title').textContent = `${subjectEmoji[quizSubject]||'📚'} ${quizSubject.charAt(0).toUpperCase()+quizSubject.slice(1)} Quiz`;
+  document.getElementById('game-status').innerHTML = `<span>Score: <strong>${quizScore}</strong>/${quizTotal}</span>`;
+
+  const classes=['Class 6','Class 7','Class 8','Class 9','Class 10','Class 11','Class 12'];
+  if(currentUser&&currentUser.cls&&currentUser.cls.startsWith('Class'))quizClass=currentUser.cls;
+
+  const classPicker=`<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:12px">
+    ${classes.map(c=>`<button class="quiz-class-btn ${quizClass===c?'active':''}" onclick="quizClass='${c}';usedQuestions={};quizAnswered=false;loadNextQuestion()">${c}</button>`).join('')}
+  </div>`;
+
+  quizQ=null; quizAnswered=false;
+  loadNextQuestion(classPicker);
+}
+
+function loadNextQuestion(classPicker) {
+  const questions = getQuizQuestions(quizSubject, quizClass);
+  if(!questions.length){
+    document.getElementById('game-content').innerHTML=`<div style="text-align:center;padding:20px;color:rgba(255,255,255,0.6)">No questions available for this subject/class yet!</div>`;
+    return;
+  }
+
+  const key = quizSubject+'_'+quizClass;
+  if(!usedQuestions[key]) usedQuestions[key]=[];
+  let available = questions.map((_,i)=>i).filter(i=>!usedQuestions[key].includes(i));
+  if(available.length===0){usedQuestions[key]=[];available=questions.map((_,i)=>i);}
+  const idx = available[Math.floor(Math.random()*available.length)];
+  usedQuestions[key].push(idx);
+  quizQ = questions[idx];
+  quizAnswered = false;
+
+  const subjectEmoji = {science:'🔬',maths:'➗',english:'📖',hindi:'🇮🇳',social:'🌍'};
+  document.getElementById('game-title').textContent = `${subjectEmoji[quizSubject]||'📚'} ${quizSubject.charAt(0).toUpperCase()+quizSubject.slice(1)} Quiz`;
+  document.getElementById('game-status').innerHTML = `Score: <strong>${quizScore}</strong>/${quizTotal} | ${quizClass}`;
+
+  const classes=['Class 6','Class 7','Class 8','Class 9','Class 10','Class 11','Class 12'];
+  const classPickerHTML = classPicker||`<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:12px">
+    ${classes.map(c=>`<button class="quiz-class-btn ${quizClass===c?'active':''}" onclick="quizClass='${c}';usedQuestions={};loadNextQuestion()">${c}</button>`).join('')}
+  </div>`;
+
+  document.getElementById('game-content').innerHTML = `
+    ${classPickerHTML}
+    <div style="background:rgba(255,255,255,0.08);border-radius:14px;padding:14px;margin-bottom:14px;font-size:15px;font-weight:600;line-height:1.5">${quizQ.q}</div>
+    <div id="quiz-opts">${quizQ.opts.map((o,i)=>`<button class="quiz-opt" onclick="quizAnswer(${i})">${String.fromCharCode(65+i)}. ${o}</button>`).join('')}</div>
+    <div id="quiz-feedback" style="min-height:32px;text-align:center;margin-top:8px"></div>
+  `;
+}
+
+function quizAnswer(idx) {
+  if(quizAnswered) return;
+  quizAnswered=true; quizTotal++;
+  const opts = document.querySelectorAll('.quiz-opt');
+  opts.forEach((btn,i)=>{
+    if(i===quizQ.ans) btn.classList.add('correct');
+    else if(i===idx&&i!==quizQ.ans) btn.classList.add('wrong');
+    btn.disabled=true;
+  });
+  const correct = idx===quizQ.ans;
+  if(correct) quizScore++;
+  document.getElementById('quiz-feedback').innerHTML=`<div style="color:${correct?'#4ade80':'#ff6b6b'};font-weight:700;font-size:16px">${correct?'✅ Correct!':'❌ Wrong — Correct: '+String.fromCharCode(65+quizQ.ans)}</div>`;
+  document.getElementById('game-status').innerHTML=`Score: <strong>${quizScore}</strong>/${quizTotal}`;
+  setTimeout(()=>loadNextQuestion(), 1800);
+}
+
+// ─── SCROLL REVEAL ────────────────────────────────────────────────
+const revealObserver = new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in-view');revealObserver.unobserve(e.target);}});
+},{threshold:0.15});
+
+// ─── INIT ────────────────────────────────────────────────────────
+initApp();
+</script>
+</body>
+</html>
