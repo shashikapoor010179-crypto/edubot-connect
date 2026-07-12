@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Edutech Admin — Notices Editor</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Outfit',sans-serif;min-height:100vh;background:radial-gradient(circle at 50% 0%,#312e81 0%,transparent 45%),linear-gradient(160deg,#020617 0%,#0f172a 35%,#1e1b4b 70%,#020617 100%);color:#fff;padding:24px 16px}
+.wrap{max-width:600px;margin:0 auto}
+h1{font-size:22px;font-weight:800;margin-bottom:4px}
+.sub{color:rgba(255,255,255,0.5);font-size:13px;margin-bottom:24px;line-height:1.6}
+.card{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:16px;padding:20px;margin-bottom:20px}
+input,textarea{width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.07);color:#fff;font-family:'Outfit',sans-serif;font-size:14px;outline:none;margin-bottom:10px}
+input:focus,textarea:focus{border-color:#f59e0b}
+textarea{resize:vertical;min-height:60px}
+label{font-size:11px;color:rgba(255,255,255,0.5);font-weight:600;letter-spacing:0.5px;display:block;margin-bottom:4px}
+button{padding:10px 18px;border-radius:10px;border:none;font-family:'Outfit',sans-serif;font-weight:700;font-size:14px;cursor:pointer}
+.btn-primary{background:linear-gradient(135deg,#f59e0b,#fb7185);color:#fff}
+.btn-secondary{background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2)}
+.btn-danger{background:rgba(255,107,107,0.15);color:#ff6b6b;border:1px solid rgba(255,107,107,0.4)}
+.notice-item{background:rgba(255,255,255,0.05);border-radius:12px;padding:14px;margin-bottom:10px;border-left:3px solid #f0a500}
+.school-tabs{display:flex;gap:8px;margin-bottom:16px}
+.tab-btn{flex:1;padding:10px;border-radius:10px;border:1.5px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.6);cursor:pointer;font-family:'Outfit',sans-serif;font-weight:600}
+.tab-btn.active{background:rgba(240,165,0,0.2);border-color:#f0a500;color:#f0a500}
+.checkbox-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.checkbox-row input{width:auto;margin:0}
+#login-screen{max-width:340px;margin:80px auto 0}
+#code-output{width:100%;min-height:280px;font-family:monospace;font-size:12px;background:#000;color:#4ade80;border-radius:10px;padding:14px;white-space:pre;overflow-x:auto}
+.steps{font-size:13px;line-height:1.8;color:rgba(255,255,255,0.7)}
+.steps b{color:#fcd34d}
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="card">
+    <h1>🔒 Admin</h1>
+    <div class="sub">Set your own password below (only you'll know it — nothing is sent anywhere, this just gates the page in your browser).</div>
+    <label>Password</label>
+    <input type="password" id="pw-input" placeholder="Enter your password" onkeydown="if(event.key==='Enter')login()"/>
+    <button class="btn-primary" style="width:100%" onclick="login()">Enter</button>
+    <div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:10px">First time? Just type any password — it'll remember it as yours for this browser.</div>
+  </div>
+</div>
+
+<div class="wrap" id="admin-panel" style="display:none">
+  <h1>📢 Notices Editor</h1>
+  <div class="sub">Edit notices below, then copy the generated code into your <b>index.html</b> on GitHub.</div>
+
+  <div class="school-tabs">
+    <button class="tab-btn active" id="tab-gcs" onclick="switchSchool('gcs')">Gurukul Convent School</button>
+    <button class="tab-btn" id="tab-sps" onclick="switchSchool('sps')">Siddharth Public School</button>
+  </div>
+
+  <div class="card">
+    <div id="notice-list"></div>
+    <button class="btn-secondary" style="width:100%" onclick="addNotice()">+ Add New Notice</button>
+  </div>
+
+  <div class="card">
+    <label>Generated code — copy this whole block</label>
+    <div id="code-output"></div>
+    <button class="btn-primary" style="width:100%;margin-top:10px" onclick="copyCode()">📋 Copy Code</button>
+    <div id="copy-status" style="font-size:13px;margin-top:8px;color:#4ade80"></div>
+  </div>
+
+  <div class="card">
+    <label>How to publish this on your live site</label>
+    <div class="steps">
+      1. Tap <b>Copy Code</b> above<br/>
+      2. Go to your repo → open <b>index.html</b> → tap the pencil ✏️ (Edit)<br/>
+      3. Find the block that starts with <b>const NOTICES = {</b> and ends with the matching <b>};</b><br/>
+      4. Select and delete that whole block, then paste the copied code in its place<br/>
+      5. Scroll down → <b>Commit changes</b><br/>
+      6. Wait ~1 minute for Vercel to redeploy — then it's live
+    </div>
+  </div>
+</div>
+
+<script>
+let allNotices = { gcs: [], sps: [] };
+let currentSchool = 'gcs';
+
+function login(){
+  const pw = document.getElementById('pw-input').value;
+  if(!pw){ return; }
+  localStorage.setItem('edutech_admin_pw', pw);
+  const saved = localStorage.getItem('edutech_notices_draft');
+  if(saved){ try{ allNotices = JSON.parse(saved); }catch(e){} }
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('admin-panel').style.display='block';
+  renderNotices();
+}
+
+function switchSchool(school){
+  currentSchool = school;
+  document.getElementById('tab-gcs').classList.toggle('active', school==='gcs');
+  document.getElementById('tab-sps').classList.toggle('active', school==='sps');
+  renderNotices();
+}
+
+function renderNotices(){
+  const list = allNotices[currentSchool] || [];
+  const el = document.getElementById('notice-list');
+  if(list.length===0){
+    el.innerHTML = '<div style="text-align:center;padding:20px;color:rgba(255,255,255,0.4);font-size:13px">No notices yet. Add one below.</div>';
+  } else {
+    el.innerHTML = list.map((n,i)=>`
+      <div class="notice-item">
+        <label>Title</label>
+        <input value="${(n.title||'').replace(/"/g,'&quot;')}" oninput="updateField(${i},'title',this.value)"/>
+        <label>Date</label>
+        <input value="${(n.date||'').replace(/"/g,'&quot;')}" oninput="updateField(${i},'date',this.value)"/>
+        <label>Description</label>
+        <textarea oninput="updateField(${i},'desc',this.value)">${n.desc||''}</textarea>
+        <div class="checkbox-row">
+          <input type="checkbox" ${n.urgent?'checked':''} onchange="updateField(${i},'urgent',this.checked)"/>
+          <span style="font-size:13px">Mark as urgent (red highlight)</span>
+        </div>
+        <button class="btn-danger" onclick="removeNotice(${i})">Delete</button>
+      </div>
+    `).join('');
+  }
+  updateCode();
+  saveDraft();
+}
+
+function updateField(i, field, value){
+  allNotices[currentSchool][i][field] = value;
+  updateCode();
+  saveDraft();
+}
+
+function addNotice(){
+  allNotices[currentSchool].unshift({title:'New Notice', date:'', desc:'', urgent:false});
+  renderNotices();
+}
+
+function removeNotice(i){
+  allNotices[currentSchool].splice(i,1);
+  renderNotices();
+}
+
+function saveDraft(){
+  localStorage.setItem('edutech_notices_draft', JSON.stringify(allNotices));
+}
+
+function fmtNotice(n){
+  const esc = s => (s||'').replace(/\\/g,'\\\\').replace(/`/g,'\\`');
+  return `    { title: \`${esc(n.title)}\`, date: \`${esc(n.date)}\`, desc: \`${esc(n.desc)}\`, urgent: ${!!n.urgent} }`;
+}
+
+function updateCode(){
+  const gcsLines = allNotices.gcs.map(fmtNotice).join(',\n');
+  const spsLines = allNotices.sps.map(fmtNotice).join(',\n');
+  const code = `const NOTICES = {
+  gcs: [
+${gcsLines}
+  ],
+  sps: [
+${spsLines}
+  ]
+};`;
+  document.getElementById('code-output').textContent = code;
+}
+
+function copyCode(){
+  const text = document.getElementById('code-output').textContent;
+  navigator.clipboard.writeText(text).then(()=>{
+    document.getElementById('copy-status').textContent = '✅ Copied! Now paste it into index.html on GitHub.';
+  }).catch(()=>{
+    document.getElementById('copy-status').textContent = '❌ Copy failed — select the text manually.';
+  });
+}
+
+// Auto-login if password already set on this device
+if(localStorage.getItem('edutech_admin_pw')){
+  const saved = localStorage.getItem('edutech_notices_draft');
+  if(saved){ try{ allNotices = JSON.parse(saved); }catch(e){} }
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('admin-panel').style.display='block';
+  renderNotices();
+}
+</script>
+</body>
+</html>
