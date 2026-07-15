@@ -35,8 +35,10 @@ export default async function handler(req, res) {
     const school = "Siddharth Public School";
 
     const studentName = req.body.name || "Guest";
-    const studentClass = req.body.class || "";
 
+    // Save to Google Sheet — only what we actually want logged.
+    // Timestamp is added by the Apps Script itself (new Date()) when the row
+    // is written, so we don't need to send one from here.
     fetch(SHEET_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -44,8 +46,6 @@ export default async function handler(req, res) {
         school: school,
         question: lastQuestion,
         name: studentName,
-        class: studentClass,
-        answer: reply,
       }),
     }).catch(console.error);
 
