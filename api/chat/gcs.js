@@ -36,11 +36,14 @@ export default async function handler(req, res) {
     // School is fixed for this route — no need to sniff the system prompt
     const school = "Gurukul Convent School";
 
-    // Student details from frontend
-    const studentName = req.body.name || "Guest";
-    const studentClass = req.body.class || "";
+    // Student name from frontend (comes from the login step).
+    // If they haven't logged in (Continue as Guest), leave this blank
+    // rather than writing the literal word "Guest" into the sheet.
+    const studentName = req.body.name && req.body.name !== "Guest" ? req.body.name : "";
 
-    // Save to Google Sheet
+    // Save to Google Sheet — only what we actually want logged.
+    // Timestamp is added by the Apps Script itself (new Date()) when the row
+    // is written, so we don't need to send one from here.
     fetch(SHEET_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -48,8 +51,6 @@ export default async function handler(req, res) {
         school: school,
         question: lastQuestion,
         name: studentName,
-        class: studentClass,
-        answer: reply,
       }),
     }).catch(console.error);
 
@@ -58,3 +59,4 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: err.message });
   }
 }
+
