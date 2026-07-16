@@ -3,26 +3,39 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const GROQ_API_KEY = process.env.GROQ_API_KEY_SPS; // ← SPS uses its own key
+  // Two keys for SPS — the second acts as a fallback when the first is
+  // rate-limited (Groq returns HTTP 429). If you only have one key, leave
+  // GROQ_API_KEY_SPS_2 unset in Vercel and this will just use the first key.
+  const GROQ_API_KEY = process.env.GROQ_API_KEY_SPS;
+  const GROQ_API_KEY_2 = process.env.GROQ_API_KEY_SPS_2;
   const SHEET_URL =
     "https://script.google.com/macros/s/AKfycbx0VqdEm4VDdOhEorgPERbkYaz49hNymLQsQsD2mR07D-6AGkYYJVqeBZmHxPAS7Tj9/exec";
 
+  // Calls Groq with a given key. Returns the raw fetch Response so the
+  // caller can check response.status (e.g. 429 = rate limited).
+  async function callGroq(key) {
+    return fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${key}`,
+      },
+      body: JSON.stringify({
+        model: "llama-3.1-8b-instant",
+        max_tokens: 800,
+        messages: req.body.messages,
+      }),
+    });
+  }
+
   try {
-    const response = await fetch(
-      "https://api.groq.com/openai/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${GROQ_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: "llama-3.1-8b-instant",
-          max_tokens: 800,
-          messages: req.body.messages,
-        }),
-      }
-    );
+    let response = await callGroq(GROQ_API_KEY);
+
+    // If the first key is rate-limited and we have a second key, retry once.
+    if (response.status === 429 && GROQ_API_KEY_2) {
+      console.warn("SPS: primary Groq key rate-limited, retrying with second key");
+      response = await callGroq(GROQ_API_KEY_2);
+    }
 
     const data = await response.json();
     const reply = data.choices?.[0]?.message?.content || "";
@@ -57,4 +70,5 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: err.message });
   }
 }
+
 
