@@ -5,7 +5,7 @@ export default async function handler(req, res) {
 
   const GROQ_API_KEY = process.env.GROQ_API_KEY_GCS; // ← GCS uses its own key
   const SHEET_URL =
-    "https://script.google.com/macros/s/AKfycbzkjMmVFS3PsiggU_GJ5q67QIItnkwFRQl-P1lA4bBjP2DnqeV6TmN_fFDS-JjiSKKl/exec";
+    "https://script.google.com/macros/s/AKfycbx0VqdEm4VDdOhEorgPERbkYaz49hNymLQsQsD2mR07D-6AGkYYJVqeBZmHxPAS7Tj9/exec";
 
   try {
     const response = await fetch(
