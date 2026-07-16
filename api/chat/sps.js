@@ -5,7 +5,7 @@ export default async function handler(req, res) {
 
   const GROQ_API_KEY = process.env.GROQ_API_KEY_SPS; // ← SPS uses its own key
   const SHEET_URL =
-    "https://script.google.com/macros/s/AKfycbzkjMmVFS3PsiggU_GJ5q67QIItnkwFRQl-P1lA4bBjP2DnqeV6TmN_fFDS-JjiSKKl/exec";
+    "https://script.google.com/macros/s/AKfycbx0VqdEm4VDdOhEorgPERbkYaz49hNymLQsQsD2mR07D-6AGkYYJVqeBZmHxPAS7Tj9/exec";
 
   try {
     const response = await fetch(
@@ -34,7 +34,10 @@ export default async function handler(req, res) {
 
     const school = "Siddharth Public School";
 
-    const studentName = req.body.name || "Guest";
+    // Student name from frontend (comes from the login step).
+    // If they haven't logged in (Continue as Guest), leave this blank
+    // rather than writing the literal word "Guest" into the sheet.
+    const studentName = req.body.name && req.body.name !== "Guest" ? req.body.name : "";
 
     // Save to Google Sheet — only what we actually want logged.
     // Timestamp is added by the Apps Script itself (new Date()) when the row
@@ -54,3 +57,4 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: err.message });
   }
 }
+
