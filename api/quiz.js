@@ -3,41 +3,34 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  // Two keys for Quiz, on two separate Groq accounts — so their rate limits
-  // stack instead of sharing one quota. Serverless functions don't share
-  // memory between requests, so a real "counter" round-robin isn't reliable
-  // here. Instead we randomly pick a starting key per request — across many
-  // simultaneous requests this spreads load ~50/50 between both keys right
-  // from the start, instead of everyone piling onto key 1 first.
+  // Two Groq keys, two separate accounts, randomly ordered per request so
+  // load spreads ~50/50 instead of everyone hitting key 1 first.
   const KEY_A = process.env.GROQ_API_KEY_QUIZ;
   const KEY_B = process.env.GROQ_API_KEY_QUIZ_2;
-  const [GROQ_API_KEY, GROQ_API_KEY_2] =
+  const [GROQ_PRIMARY, GROQ_SECONDARY] =
     KEY_B && Math.random() < 0.5 ? [KEY_B, KEY_A] : [KEY_A, KEY_B];
 
-  // Gemini — genuinely separate provider, only used if BOTH Groq keys fail.
-  // Not for extra speed/capacity, purely a safety net (e.g. a Groq outage).
+  // Gemini — genuinely separate provider, only touched if the primary Groq
+  // attempt fails. Kept as a rare-case safety net, not extra capacity.
   const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
   const GEMINI_API_KEY_2 = process.env.GEMINI_API_KEY_2;
 
-  async function callGroq(key) {
-    return fetch("https://api.groq.com/openai/v1/chat/completions", {
+  // Throws on any failure (network error, 429, non-2xx) so these can be
+  // raced together with raceFirstSuccess() below — first one to resolve
+  // successfully wins, instead of waiting through them one at a time.
+  async function tryGroq(key) {
+    if (!key) throw new Error("no-key");
+    const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${key}`,
-      },
-      body: JSON.stringify({
-        model: "llama-3.1-8b-instant",
-        max_tokens: 1800,
-        messages: req.body.messages,
-      }),
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      body: JSON.stringify({ model: "llama-3.1-8b-instant", max_tokens: 1800, messages: req.body.messages }),
     });
+    if (!r.ok) throw new Error("groq-failed-" + r.status);
+    return r.json();
   }
 
-  // Converts our OpenAI-style messages into Gemini's format, then reshapes
-  // the reply back into { choices:[{message:{content}}] } — same shape Groq
-  // returns — so nothing downstream needs to know which provider answered.
-  async function callGemini(key) {
+  async function tryGemini(key) {
+    if (!key) throw new Error("no-key");
     let systemInstruction = "";
     const contents = [];
     for (const m of req.body.messages) {
@@ -51,43 +44,56 @@ export default async function handler(req, res) {
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
       { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }
     );
-    if (!r.ok) throw new Error("Gemini call failed: " + r.status);
+    if (!r.ok) throw new Error("gemini-failed-" + r.status);
     const gData = await r.json();
     const text = gData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    // Reshaped to look like Groq's response — same { choices:[{message:{content}}] }
+    // shape — so nothing downstream needs to know which provider answered.
     return { choices: [{ message: { content: text } }] };
   }
 
+  // Runs several attempts in parallel, resolves with whichever succeeds
+  // first. Only rejects if every attempt fails.
+  function raceFirstSuccess(promises) {
+    return new Promise((resolve, reject) => {
+      let remaining = promises.length;
+      let lastError = new Error("all-failed");
+      if (remaining === 0) return reject(lastError);
+      promises.forEach((p) => {
+        p.then(resolve).catch((err) => {
+          lastError = err;
+          remaining--;
+          if (remaining === 0) reject(lastError);
+        });
+      });
+    });
+  }
+
   try {
-    let response = await callGroq(GROQ_API_KEY);
-
-    if (response.status === 429 && GROQ_API_KEY_2) {
-      console.warn("Quiz: chosen Groq key rate-limited, retrying with other key");
-      response = await callGroq(GROQ_API_KEY_2);
-    }
-
     let data;
-    if (response.status === 429 || !response.ok) {
-      data = null;
-      if (GEMINI_API_KEY) {
-        try {
-          console.warn("Quiz: both Groq keys unavailable, falling back to Gemini key 1");
-          data = await callGemini(GEMINI_API_KEY);
-        } catch (e) { console.warn("Quiz: Gemini key 1 failed:", e.message); }
+    try {
+      // Fast path: primary Groq key alone (the common case — no need to
+      // spend time/quota on anything else if this just works).
+      data = await tryGroq(GROQ_PRIMARY);
+    } catch (e1) {
+      console.warn("Quiz: primary Groq key failed, racing fallback options");
+      // Fallback: race the OTHER Groq key against Gemini key 1 in parallel
+      // (instead of trying them one after another) — whichever answers
+      // first wins, cutting worst-case wait roughly in half.
+      const fallbackAttempts = [];
+      if (GROQ_SECONDARY) fallbackAttempts.push(tryGroq(GROQ_SECONDARY));
+      if (GEMINI_API_KEY) fallbackAttempts.push(tryGemini(GEMINI_API_KEY));
+      try {
+        data = await raceFirstSuccess(fallbackAttempts);
+      } catch (e2) {
+        // Last resort: Gemini key 2 alone.
+        console.warn("Quiz: all first-round fallbacks failed, trying Gemini key 2");
+        data = await tryGemini(GEMINI_API_KEY_2);
       }
-      if (!data && GEMINI_API_KEY_2) {
-        try {
-          console.warn("Quiz: trying Gemini key 2");
-          data = await callGemini(GEMINI_API_KEY_2);
-        } catch (e) { console.warn("Quiz: Gemini key 2 failed:", e.message); }
-      }
-      if (!data) data = await response.json(); // last resort — return whatever Groq gave us
-    } else {
-      data = await response.json();
     }
 
     return res.status(200).json(data);
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: "All providers failed: " + err.message });
   }
 }
-
