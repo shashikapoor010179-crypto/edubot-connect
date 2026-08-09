@@ -34,6 +34,22 @@ export default async function handler(req, res) {
     if (!r.ok) throw new Error("gemini-failed-" + r.status);
     const gData = await r.json();
     const text = gData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+    // Validate the response is actually parseable JSON before declaring
+    // success. Without this check, a malformed Gemini reply (extra
+    // commentary, truncated output, stray markdown fences) gets forwarded
+    // to the client as a "successful" response. The client's JSON.parse
+    // then fails and the user sees "Couldn't load questions" — while the
+    // Groq fallback below never gets a chance to run, because as far as
+    // this function is concerned Gemini "succeeded" (HTTP 200).
+    const cleaned = text.trim().replace(/^```json/i, "").replace(/^```/, "").replace(/```$/, "").trim();
+    try {
+      const parsed = JSON.parse(cleaned);
+      if (!Array.isArray(parsed) || parsed.length === 0) throw new Error("empty-or-not-array");
+    } catch {
+      throw new Error("gemini-bad-json");
+    }
+
     // Reshaped to look like Groq's response — same { choices:[{message:{content}}] }
     // shape — so nothing downstream needs to know which provider answered.
     return { choices: [{ message: { content: text } }] };
@@ -93,4 +109,5 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "All providers failed: " + err.message });
   }
 }
+
 
