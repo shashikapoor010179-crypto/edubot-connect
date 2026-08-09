@@ -3,48 +3,91 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  // Two keys for GCS, on two separate Groq accounts — so their rate limits
-  // stack instead of sharing one quota. Serverless functions don't share
-  // memory between requests, so a real "counter" round-robin isn't reliable
-  // here. Instead we randomly pick a starting key per request — across many
-  // simultaneous requests this spreads load ~50/50 between both keys right
-  // from the start, instead of everyone piling onto key 1 first.
-  // If you only have one key, leave GROQ_API_KEY_GCS_2 unset and this will
-  // just always use the first key.
-  const KEY_A = process.env.GROQ_API_KEY_GCS;
-  const KEY_B = process.env.GROQ_API_KEY_GCS_2;
-  const [GROQ_API_KEY, GROQ_API_KEY_2] =
+  // Gemini — now PRIMARY for GCS. Two keys/accounts DEDICATED to gcs
+  // (separate from quiz.js's Gemini keys), randomly ordered per request so
+  // load spreads ~50/50 instead of everyone hitting key 1 first.
+  const KEY_A = process.env.GEMINI_API_KEY_GCS;
+  const KEY_B = process.env.GEMINI_API_KEY_GCS_2;
+  const [GEMINI_PRIMARY, GEMINI_SECONDARY] =
     KEY_B && Math.random() < 0.5 ? [KEY_B, KEY_A] : [KEY_A, KEY_B];
+
+  // Groq — kept as FALLBACK, not deleted. Only used if both Gemini
+  // attempts fail (e.g. daily free-tier limit hit).
+  const GROQ_API_KEY_GCS = process.env.GROQ_API_KEY_GCS;
+  const GROQ_API_KEY_GCS_2 = process.env.GROQ_API_KEY_GCS_2;
+
   const SHEET_URL =
     "https://script.google.com/macros/s/AKfycbx0VqdEm4VDdOhEorgPERbkYaz49hNymLQsQsD2mR07D-6AGkYYJVqeBZmHxPAS7Tj9/exec";
 
-  // Calls Groq with a given key. Returns the raw fetch Response so the
-  // caller can check response.status (e.g. 429 = rate limited).
-  async function callGroq(key) {
-    return fetch("https://api.groq.com/openai/v1/chat/completions", {
+  async function tryGemini(key) {
+    if (!key) throw new Error("no-key");
+    let systemInstruction = "";
+    const contents = [];
+    for (const m of req.body.messages) {
+      if (m.role === "system") systemInstruction += (systemInstruction ? "\n\n" : "") + m.content;
+      else contents.push({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] });
+    }
+    const body = { contents };
+    if (systemInstruction) body.system_instruction = { parts: [{ text: systemInstruction }] };
+
+    const r = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
+      { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }
+    );
+    if (!r.ok) throw new Error("gemini-failed-" + r.status);
+    const gData = await r.json();
+    const text = gData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    // Reshaped to look like Groq's response shape so the sheet-logging
+    // code below doesn't need to know which provider answered.
+    return { choices: [{ message: { content: text } }] };
+  }
+
+  async function tryGroq(key) {
+    if (!key) throw new Error("no-key");
+    const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${key}`,
-      },
-      body: JSON.stringify({
-        model: "llama-3.1-8b-instant",
-        max_tokens: 800,
-        messages: req.body.messages,
-      }),
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      body: JSON.stringify({ model: "llama-3.1-8b-instant", max_tokens: 800, messages: req.body.messages }),
+    });
+    if (!r.ok) throw new Error("groq-failed-" + r.status);
+    return r.json();
+  }
+
+  // Runs several attempts in parallel, resolves with whichever succeeds
+  // first. Only rejects if every attempt fails.
+  function raceFirstSuccess(promises) {
+    return new Promise((resolve, reject) => {
+      let remaining = promises.length;
+      let lastError = new Error("all-failed");
+      if (remaining === 0) return reject(lastError);
+      promises.forEach((p) => {
+        p.then(resolve).catch((err) => {
+          lastError = err;
+          remaining--;
+          if (remaining === 0) reject(lastError);
+        });
+      });
     });
   }
 
   try {
-    let response = await callGroq(GROQ_API_KEY);
-
-    // If the chosen key is rate-limited and we have a second key, retry once.
-    if (response.status === 429 && GROQ_API_KEY_2) {
-      console.warn("GCS: chosen Groq key rate-limited, retrying with other key");
-      response = await callGroq(GROQ_API_KEY_2);
+    let data;
+    try {
+      // Fast path: primary Gemini key alone.
+      data = await tryGemini(GEMINI_PRIMARY);
+    } catch (e1) {
+      console.warn("GCS: primary Gemini key failed, racing fallback options");
+      const fallbackAttempts = [];
+      if (GEMINI_SECONDARY) fallbackAttempts.push(tryGemini(GEMINI_SECONDARY));
+      if (GROQ_API_KEY_GCS) fallbackAttempts.push(tryGroq(GROQ_API_KEY_GCS));
+      try {
+        data = await raceFirstSuccess(fallbackAttempts);
+      } catch (e2) {
+        console.warn("GCS: all first-round fallbacks failed, trying Groq key 2");
+        data = await tryGroq(GROQ_API_KEY_GCS_2);
+      }
     }
 
-    const data = await response.json();
     const reply = data.choices?.[0]?.message?.content || "";
 
     // Last user question
@@ -62,8 +105,6 @@ export default async function handler(req, res) {
     const studentName = req.body.name && req.body.name !== "Guest" ? req.body.name : "";
 
     // Save to Google Sheet — only what we actually want logged.
-    // Timestamp is added by the Apps Script itself (new Date()) when the row
-    // is written, so we don't need to send one from here.
     fetch(SHEET_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -79,7 +120,6 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: err.message });
   }
 }
-
 
 
 
