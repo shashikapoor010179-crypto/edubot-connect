@@ -3,31 +3,18 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  // Two Groq keys, two separate accounts, randomly ordered per request so
-  // load spreads ~50/50 instead of everyone hitting key 1 first.
-  const KEY_A = process.env.GROQ_API_KEY_QUIZ;
-  const KEY_B = process.env.GROQ_API_KEY_QUIZ_2;
-  const [GROQ_PRIMARY, GROQ_SECONDARY] =
+  // Gemini — now PRIMARY. Two keys/accounts DEDICATED to quiz (separate
+  // from gcs.js's Gemini keys), randomly ordered per request so load
+  // spreads ~50/50 instead of everyone hitting key 1 first.
+  const KEY_A = process.env.GEMINI_API_KEY_QUIZ;
+  const KEY_B = process.env.GEMINI_API_KEY_QUIZ_2;
+  const [GEMINI_PRIMARY, GEMINI_SECONDARY] =
     KEY_B && Math.random() < 0.5 ? [KEY_B, KEY_A] : [KEY_A, KEY_B];
 
-  // Gemini — genuinely separate provider, only touched if the primary Groq
-  // attempt fails. Kept as a rare-case safety net, not extra capacity.
-  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-  const GEMINI_API_KEY_2 = process.env.GEMINI_API_KEY_2;
-
-  // Throws on any failure (network error, 429, non-2xx) so these can be
-  // raced together with raceFirstSuccess() below — first one to resolve
-  // successfully wins, instead of waiting through them one at a time.
-  async function tryGroq(key) {
-    if (!key) throw new Error("no-key");
-    const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-      body: JSON.stringify({ model: "llama-3.1-8b-instant", max_tokens: 1800, messages: req.body.messages }),
-    });
-    if (!r.ok) throw new Error("groq-failed-" + r.status);
-    return r.json();
-  }
+  // Groq — kept as FALLBACK, not deleted. Only touched if both Gemini
+  // attempts fail (e.g. Gemini's free-tier limit is hit for the day).
+  const GROQ_API_KEY_QUIZ = process.env.GROQ_API_KEY_QUIZ;
+  const GROQ_API_KEY_QUIZ_2 = process.env.GROQ_API_KEY_QUIZ_2;
 
   async function tryGemini(key) {
     if (!key) throw new Error("no-key");
@@ -52,6 +39,17 @@ export default async function handler(req, res) {
     return { choices: [{ message: { content: text } }] };
   }
 
+  async function tryGroq(key) {
+    if (!key) throw new Error("no-key");
+    const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      body: JSON.stringify({ model: "llama-3.1-8b-instant", max_tokens: 1800, messages: req.body.messages }),
+    });
+    if (!r.ok) throw new Error("groq-failed-" + r.status);
+    return r.json();
+  }
+
   // Runs several attempts in parallel, resolves with whichever succeeds
   // first. Only rejects if every attempt fails.
   function raceFirstSuccess(promises) {
@@ -72,23 +70,21 @@ export default async function handler(req, res) {
   try {
     let data;
     try {
-      // Fast path: primary Groq key alone (the common case — no need to
-      // spend time/quota on anything else if this just works).
-      data = await tryGroq(GROQ_PRIMARY);
+      // Fast path: primary Gemini key alone (the common case).
+      data = await tryGemini(GEMINI_PRIMARY);
     } catch (e1) {
-      console.warn("Quiz: primary Groq key failed, racing fallback options");
-      // Fallback: race the OTHER Groq key against Gemini key 1 in parallel
-      // (instead of trying them one after another) — whichever answers
-      // first wins, cutting worst-case wait roughly in half.
+      console.warn("Quiz: primary Gemini key failed, racing fallback options");
+      // Fallback: race the OTHER Gemini key against Groq key 1 in parallel
+      // — whichever answers first wins.
       const fallbackAttempts = [];
-      if (GROQ_SECONDARY) fallbackAttempts.push(tryGroq(GROQ_SECONDARY));
-      if (GEMINI_API_KEY) fallbackAttempts.push(tryGemini(GEMINI_API_KEY));
+      if (GEMINI_SECONDARY) fallbackAttempts.push(tryGemini(GEMINI_SECONDARY));
+      if (GROQ_API_KEY_QUIZ) fallbackAttempts.push(tryGroq(GROQ_API_KEY_QUIZ));
       try {
         data = await raceFirstSuccess(fallbackAttempts);
       } catch (e2) {
-        // Last resort: Gemini key 2 alone.
-        console.warn("Quiz: all first-round fallbacks failed, trying Gemini key 2");
-        data = await tryGemini(GEMINI_API_KEY_2);
+        // Last resort: Groq key 2 alone.
+        console.warn("Quiz: all first-round fallbacks failed, trying Groq key 2");
+        data = await tryGroq(GROQ_API_KEY_QUIZ_2);
       }
     }
 
@@ -97,3 +93,4 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "All providers failed: " + err.message });
   }
 }
+
