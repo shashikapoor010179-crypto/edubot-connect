@@ -26,6 +26,18 @@ export default async function handler(req, res) {
     }
     const body = { contents };
     if (systemInstruction) body.system_instruction = { parts: [{ text: systemInstruction }] };
+    // Gemini 2.5 Flash spends part of its output budget on internal "thinking"
+    // before writing the actual answer — both come out of the SAME token
+    // budget. For a plain JSON-generation task like this, thinking adds no
+    // value and can eat the whole budget on a longer request (e.g. 15
+    // questions), leaving little/no room for the actual JSON — which comes
+    // back as an empty or truncated response even though the call itself
+    // "succeeded" (HTTP 200). Disabling it and raising the output cap fixes
+    // that at the source, instead of just detecting the bad output after.
+    body.generationConfig = {
+      maxOutputTokens: 4096,
+      thinkingConfig: { thinkingBudget: 0 }
+    };
 
     const r = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
@@ -34,6 +46,7 @@ export default async function handler(req, res) {
     if (!r.ok) throw new Error("gemini-failed-" + r.status);
     const gData = await r.json();
     const text = gData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const finishReason = gData.candidates?.[0]?.finishReason;
 
     // Validate the response is actually parseable JSON before declaring
     // success. Without this check, a malformed Gemini reply (extra
@@ -47,6 +60,9 @@ export default async function handler(req, res) {
       const parsed = JSON.parse(cleaned);
       if (!Array.isArray(parsed) || parsed.length === 0) throw new Error("empty-or-not-array");
     } catch {
+      // Log WHY it failed (empty output, hit the token cap, safety block, etc.)
+      // so this is diagnosable from Vercel logs instead of guesswork next time.
+      console.warn("Gemini returned unusable output. finishReason:", finishReason, "| text length:", text.length);
       throw new Error("gemini-bad-json");
     }
 
@@ -60,7 +76,7 @@ export default async function handler(req, res) {
     const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-      body: JSON.stringify({ model: "llama-3.1-8b-instant", max_tokens: 1800, messages: req.body.messages }),
+      body: JSON.stringify({ model: "openai/gpt-oss-20b", max_tokens: 1800, messages: req.body.messages }),
     });
     if (!r.ok) throw new Error("groq-failed-" + r.status);
     return r.json();
@@ -109,5 +125,6 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "All providers failed: " + err.message });
   }
 }
+
 
 
