@@ -42,19 +42,18 @@ export default async function handler(req, res) {
     }
     const body = { contents };
     if (systemInstruction) body.system_instruction = { parts: [{ text: systemInstruction }] };
-    // Gemini 2.5 models spend part of their output budget on internal
-    // "thinking" before writing the actual answer — both come out of the
-    // SAME token budget. For a plain JSON-generation task like this,
-    // thinking adds no value and can eat the whole budget on a longer
-    // request, leaving little/no room for the actual JSON. Disabling it and
-    // raising the output cap fixes that at the source.
     body.generationConfig = {
-      maxOutputTokens: 4096,
-      thinkingConfig: { thinkingBudget: 0 }
+      maxOutputTokens: 4096
+      // No thinkingConfig here. The 2.5 series used `thinking_budget` to
+      // control reasoning; the 3.x series uses a different field
+      // (`thinking_level`) instead. gemini-3.1-flash-lite-preview doesn't
+      // reason by default for a plain JSON-generation task like this, so
+      // there's nothing extra to disable — sending the old 2.5-style field
+      // here could itself trigger a 400 on this model.
     };
 
     const r = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${key}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${key}`,
       { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }
     );
     if (!r.ok) throw new Error(label + "-failed-" + r.status);
@@ -132,4 +131,3 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "All providers failed: " + err.message });
   }
 }
-
