@@ -3,16 +3,10 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  // Gemini — now PRIMARY for GCS. Two keys/accounts DEDICATED to gcs
-  // (separate from quiz.js's Gemini keys), randomly ordered per request so
-  // load spreads ~50/50 instead of everyone hitting key 1 first.
-  const KEY_A = process.env.GEMINI_API_KEY_GCS;
-  const KEY_B = process.env.GEMINI_API_KEY_GCS_2;
-  const [GEMINI_PRIMARY, GEMINI_SECONDARY] =
-    KEY_B && Math.random() < 0.5 ? [KEY_B, KEY_A] : [KEY_A, KEY_B];
+  // Gemini — PRIMARY for GCS. Single dedicated key.
+  const GEMINI_API_KEY_GCS = process.env.GEMINI_API_KEY_GCS;
 
-  // Groq — kept as FALLBACK, not deleted. Only used if both Gemini
-  // attempts fail (e.g. daily free-tier limit hit).
+  // Groq — FALLBACK only, used if Gemini fails (e.g. free-tier limit hit).
   const GROQ_API_KEY_GCS = process.env.GROQ_API_KEY_GCS;
   const GROQ_API_KEY_GCS_2 = process.env.GROQ_API_KEY_GCS_2;
 
@@ -30,15 +24,17 @@ export default async function handler(req, res) {
     const body = { contents };
     if (systemInstruction) body.system_instruction = { parts: [{ text: systemInstruction }] };
 
+    // gemini-2.5-flash retires Oct 16 2026 and has been flaky already.
+    // gemini-3.5-flash-lite is the current free-tier workhorse.
     const r = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${key}`,
       { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }
     );
     if (!r.ok) throw new Error("gemini-failed-" + r.status);
     const gData = await r.json();
     const text = gData.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    // Reshaped to look like Groq's response shape so the sheet-logging
-    // code below doesn't need to know which provider answered.
+    // Reshaped to match Groq's response shape so the sheet-logging code
+    // below doesn't need to know which provider answered.
     return { choices: [{ message: { content: text } }] };
   }
 
@@ -47,14 +43,16 @@ export default async function handler(req, res) {
     const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-      body: JSON.stringify({ model: "llama-3.1-8b-instant", max_tokens: 800, messages: req.body.messages }),
+      // llama-3.1-8b-instant was shut down by Groq on Aug 16, 2026.
+      // openai/gpt-oss-20b is Groq's official migration target.
+      body: JSON.stringify({ model: "openai/gpt-oss-20b", max_tokens: 800, messages: req.body.messages }),
     });
     if (!r.ok) throw new Error("groq-failed-" + r.status);
     return r.json();
   }
 
-  // Runs several attempts in parallel, resolves with whichever succeeds
-  // first. Only rejects if every attempt fails.
+  // Runs several attempts in parallel, resolves with whichever succeeds first.
+  // Only rejects if every attempt fails.
   function raceFirstSuccess(promises) {
     return new Promise((resolve, reject) => {
       let remaining = promises.length;
@@ -73,38 +71,27 @@ export default async function handler(req, res) {
   try {
     let data;
     try {
-      // Fast path: primary Gemini key alone.
-      data = await tryGemini(GEMINI_PRIMARY);
+      // Fast path: the single Gemini key.
+      data = await tryGemini(GEMINI_API_KEY_GCS);
     } catch (e1) {
-      console.warn("GCS: primary Gemini key failed, racing fallback options");
+      console.warn("GCS: Gemini failed, racing both Groq keys as fallback");
       const fallbackAttempts = [];
-      if (GEMINI_SECONDARY) fallbackAttempts.push(tryGemini(GEMINI_SECONDARY));
       if (GROQ_API_KEY_GCS) fallbackAttempts.push(tryGroq(GROQ_API_KEY_GCS));
-      try {
-        data = await raceFirstSuccess(fallbackAttempts);
-      } catch (e2) {
-        console.warn("GCS: all first-round fallbacks failed, trying Groq key 2");
-        data = await tryGroq(GROQ_API_KEY_GCS_2);
-      }
+      if (GROQ_API_KEY_GCS_2) fallbackAttempts.push(tryGroq(GROQ_API_KEY_GCS_2));
+      data = await raceFirstSuccess(fallbackAttempts);
     }
 
     const reply = data.choices?.[0]?.message?.content || "";
 
-    // Last user question
     const userMessages = req.body.messages.filter((m) => m.role === "user");
     const lastQuestion = userMessages.length
       ? userMessages[userMessages.length - 1].content
       : "";
 
-    // School is fixed for this route — no need to sniff the system prompt
     const school = "Gurukul Convent School";
 
-    // Student name from frontend (comes from the login step).
-    // If they haven't logged in (Continue as Guest), leave this blank
-    // rather than writing the literal word "Guest" into the sheet.
     const studentName = req.body.name && req.body.name !== "Guest" ? req.body.name : "";
 
-    // Save to Google Sheet — only what we actually want logged.
     fetch(SHEET_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -120,6 +107,4 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: err.message });
   }
 }
-
-
 
