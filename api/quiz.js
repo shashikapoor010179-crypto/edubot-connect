@@ -12,15 +12,6 @@ export default async function handler(req, res) {
   const GROQ_API_KEY_QUIZ = process.env.GROQ_API_KEY_QUIZ;
   const GROQ_API_KEY_QUIZ_2 = process.env.GROQ_API_KEY_QUIZ_2;
 
-  // Every provider attempt gets a hard per-call timeout. Without this, one
-  // slow/hanging provider can eat most of Vercel's total function execution
-  // window all by itself — and on a Hobby-tier function budget, a SEQUENTIAL
-  // chain of "wait for Gemini to fail, THEN wait for the next attempt, THEN
-  // wait for the one after that" can add up past the limit even if every
-  // individual call would have eventually succeeded on its own. Vercel then
-  // kills the whole function with a 504, which looks identical to "all
-  // providers failed" on the client — even though, given enough time, one of
-  // them may well have returned a good answer.
   const PROVIDER_TIMEOUT_MS = 7000;
 
   function withTimeout(promise, label) {
@@ -30,6 +21,25 @@ export default async function handler(req, res) {
         setTimeout(() => reject(new Error(label + "-timeout")), PROVIDER_TIMEOUT_MS)
       ),
     ]);
+  }
+
+  // Shared validity check — used for EVERY provider now, not just Gemini.
+  // A 200 response with truncated/garbled/empty JSON must be treated as a
+  // failure so raceFirstSuccess moves on to another provider, instead of
+  // handing broken data to the frontend and calling it a win.
+  function assertUsableQuizJSON(text, label) {
+    const cleaned = text.trim().replace(/^```json/i, "").replace(/^```/, "").replace(/```$/, "").trim();
+    let parsed;
+    try {
+      parsed = JSON.parse(cleaned);
+    } catch {
+      console.warn(label + ": not valid JSON. text length:", text.length);
+      throw new Error(label + "-bad-json");
+    }
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      console.warn(label + ": JSON parsed but empty/not an array. text length:", text.length);
+      throw new Error(label + "-empty-json");
+    }
   }
 
   async function tryGemini(key, label) {
@@ -42,38 +52,19 @@ export default async function handler(req, res) {
     }
     const body = { contents };
     if (systemInstruction) body.system_instruction = { parts: [{ text: systemInstruction }] };
-    body.generationConfig = {
-      maxOutputTokens: 4096
-      // No thinkingConfig here. The 2.5 series used `thinking_budget` to
-      // control reasoning; the 3.x series uses a different field
-      // (`thinking_level`) instead. gemini-3.1-flash-lite-preview doesn't
-      // reason by default for a plain JSON-generation task like this, so
-      // there's nothing extra to disable — sending the old 2.5-style field
-      // here could itself trigger a 400 on this model.
-    };
+    body.generationConfig = { maxOutputTokens: 4096 };
 
+    // gemini-3.1-flash-lite-preview went GA in May 2026 and Google retires
+    // preview endpoints shortly after that — this was almost certainly
+    // returning an error on every call. Using the stable GA model name now.
     const r = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${key}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${key}`,
       { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }
     );
     if (!r.ok) throw new Error(label + "-failed-" + r.status);
     const gData = await r.json();
     const text = gData.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    const finishReason = gData.candidates?.[0]?.finishReason;
-
-    // Validate the response is actually parseable JSON before declaring
-    // success — a 200 with empty/garbled text should NOT count as a win.
-    const cleaned = text.trim().replace(/^```json/i, "").replace(/^```/, "").replace(/```$/, "").trim();
-    try {
-      const parsed = JSON.parse(cleaned);
-      if (!Array.isArray(parsed) || parsed.length === 0) throw new Error("empty-or-not-array");
-    } catch {
-      console.warn(label + ": unusable output. finishReason:", finishReason, "| text length:", text.length);
-      throw new Error(label + "-bad-json");
-    }
-
-    // Reshaped to look like Groq's response — same { choices:[{message:{content}}] }
-    // shape — so nothing downstream needs to know which provider answered.
+    assertUsableQuizJSON(text, label);
     return { choices: [{ message: { content: text } }] };
   }
 
@@ -82,16 +73,24 @@ export default async function handler(req, res) {
     const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-      body: JSON.stringify({ model: "openai/gpt-oss-20b", max_tokens: 1800, messages: req.body.messages }),
+      body: JSON.stringify({
+        model: "openai/gpt-oss-20b",
+        max_tokens: 3000,
+        // gpt-oss is a REASONING model — without this it can burn most of
+        // max_tokens on hidden "thinking" before ever writing the JSON,
+        // truncating the actual answer. Low keeps reasoning minimal for a
+        // simple structured-output task like this.
+        reasoning_effort: "low",
+        messages: req.body.messages,
+      }),
     });
     if (!r.ok) throw new Error(label + "-failed-" + r.status);
-    return r.json();
+    const data = await r.json();
+    const text = data.choices?.[0]?.message?.content || "";
+    assertUsableQuizJSON(text, label);
+    return data;
   }
 
-  // Resolves with whichever attempt succeeds FIRST. Only rejects if every
-  // single attempt fails. Logs each individual failure as it happens so
-  // Vercel logs show exactly which providers failed and why, not just the
-  // final aggregate outcome.
   function raceFirstSuccess(promises) {
     return new Promise((resolve, reject) => {
       let remaining = promises.length;
@@ -109,15 +108,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    // ALL FOUR attempts fire at once, right from the start — not
-    // sequentially. Whichever provider answers first (with a valid result)
-    // wins. Every attempt is individually capped at PROVIDER_TIMEOUT_MS, so a
-    // single slow/hanging provider can never drag the whole request past
-    // Vercel's function execution limit. This replaces the previous
-    // "try Gemini, THEN wait and try the next set, THEN wait and try the
-    // last resort" waterfall, whose cumulative wait time across multiple
-    // slow failures could exceed the platform's timeout even when a working
-    // provider existed somewhere in the chain.
     const attempts = [];
     if (GEMINI_API_KEY_QUIZ) attempts.push(withTimeout(tryGemini(GEMINI_API_KEY_QUIZ, "gemini-1"), "gemini-1"));
     if (GEMINI_API_KEY_QUIZ_2) attempts.push(withTimeout(tryGemini(GEMINI_API_KEY_QUIZ_2, "gemini-2"), "gemini-2"));
